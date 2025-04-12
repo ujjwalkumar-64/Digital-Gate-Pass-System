@@ -30,6 +30,7 @@ services:
       - '3001:3000'
     environment:
       DATABASE_URL=postgresql://auth_user:auth_pass@auth-db:5432/auth_db
+      JWT_SECRET = DStTeNYdme8mUpVZ8SOcLn1Mz4Qf!gHJc69PjGxU8BYbCFwuDU
     depends_on:
       - auth-db
 
