@@ -204,6 +204,81 @@ gate-pass-system/
 
 ---
 
+## 🧩 RGIPT Digital Gate Pass System – Microservices Architecture Diagram
+
+                        +----------------+
+                        |   Frontend UI  |
+                        |  (React.js)    |
+                        +-------+--------+
+                                |
+                                ▼
+                      +---------+---------+
+                      |  API Gateway /    |
+                      |  Nginx (optional) |
+                      +---------+---------+
+                                |
+        ┌──────────────────────┼──────────────────────┐
+        ▼                      ▼                      ▼
+
++---------------+ +----------------+ +------------------+
+| Auth Service | | User Service | | Admin Service |
+| (Login/JWT) | | (Users/Roles) | | (Dashboard, |
+| | | | | Stats, Roles) |
++-------+-------+ +-------+--------+ +--------+---------+
+| | |
+▼ ▼ ▼
++-------+--------+ +-------+--------+ +--------+--------+
+| Leave Service | | Gatepass Svc |◄────►| Notification Svc |
+| (Form, Flow) | | (After Approval)| | (Email/SMS logs)|
++-------+--------+ +--------+------+ +------------------+
+|
+▼
++----------------+
+| Department / |
+| Academic Flow |
+| (Internal DB) |
++----------------+
+
+                          ▼
+                +------------------+
+                | Security Service |
+                |  (Gate Pass Scan)|
+                +------------------+
+
+---
+
+## 🔁 Inter-Service REST Communication Examples
+
+1. Admin Service:
+
+Calls:
+
+leave-service/api/leaves/stats
+
+gatepass-service/api/gatepasses/stats
+
+notification-service/api/notifications/stats
+
+2. Leave Service:
+
+Can notify:
+
+notification-service on approval/rejection
+
+3. Gatepass Service:
+
+Can notify:
+
+notification-service when gatepass is issued
+
+Frontend:
+
+Auth API → auth-service
+
+Leave Form API → leave-service
+
+## Dashboard → admin-service (which in turn calls others)
+
 ## ✅ Project Roadmap
 
 ### Week 1:

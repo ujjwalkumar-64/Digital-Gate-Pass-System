@@ -8,10 +8,29 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("student")
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  phone        String
+  role         String   // student, leave-admin, super-admin etc.
+  department   String   // Mandatory for both student & admins
+  room_number  String?  // For students only
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  leaves       Leave[] // One student -> Many leaves
+}
+
+model Leave {
+  id          String   @id @default(uuid())
+  reason      String
+  fromDate    DateTime
+  toDate      DateTime
+  status      String   // pending, approved, rejected, etc.
+  department  String   // auto-filled from student
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
 }

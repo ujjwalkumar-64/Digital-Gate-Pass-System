@@ -1,24 +1,44 @@
-import prisma from '../../prisma/client.js';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
 import bcrypt from 'bcrypt';
 import { signToken } from '../utils/jwt.js';
 
-export const register = async (req, res) => {
-  const { name, email, password, role } = req.body;
+
+
+export const registerUser = async (req, res) => {
   try {
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return res.status(400).json({ message: 'User exists' });
+    const { name, email, password, phone, role, department, room_number } = req.body;
 
-    const hashed = await bcrypt.hash(password, 10);
+    if (!department || !phone) {
+      return res.status(400).json({ message: 'Department and phone number are required' });
+    }
+
+    if (role === 'student' && !room_number) {
+      return res.status(400).json({ message: 'Room number required for students' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await prisma.user.create({
-      data: { name, email, password: hashed, role },
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        phone,
+        role,
+        department,
+        room_number: role === 'student' ? room_number : null,
+      },
     });
-
-    const token = signToken({ id: user.id, role: user.role });
-    res.json({ token, user });
-  } catch (err) {
-    res.status(500).json({ message: 'Register failed', error: err.message });
+    res.status(201).json({ message: 'User registered successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Registration failed', error: error.message });
   }
 };
+
+
+
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -29,7 +49,7 @@ export const login = async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = signToken({ id: user.id, role: user.role });
+    const token = signToken({ id: user.id, role: user.role, department:user.department });
     res.json({ token, user });
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
