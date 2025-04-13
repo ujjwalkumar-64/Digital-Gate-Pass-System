@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LeaveRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  reason        String
+  fromDate      DateTime
+  toDate        DateTime
+  leaveType     String   // e.g., personal, sem-break
+  status        String   @default("pending") // pending, approved, rejected
+  workflowType  String   // standard, hostel_direct
+  currentStage  String   // department, academic, hostel, done
+  approvals     Json     // { "department": timestamp, "academic": timestamp, "hostel": timestamp }
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
