@@ -4,6 +4,8 @@ import { PrismaClient } from '../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
+import axios from "axios"
+
 import bcrypt from 'bcrypt';
 import { signToken } from '../utils/jwt.js';
 
@@ -85,6 +87,9 @@ export const registerUser = async (req, res) => {
       },
     });
     const token = signToken({ id: newUser.id, role: newUser.role });
+    
+    // Set token in the response header
+    res.setHeader('Authorization', `Bearer ${token}`);
 
     return res.status(201).json({
       message: 'User registered successfully.',
@@ -105,13 +110,15 @@ export const registerUser = async (req, res) => {
   }
 };
 
-
+// need to change utl
 const isAdminApproved = async (email, role) => {
   try {
-    const { data } = await axios.get(`http://admin-service/api/admin/check-approval?email=${email}&role=${role}`);
+    const { data } = await axios.get(`http://localhost:5005/api/admin/check-approval`, {
+      params: { email, role }
+    });
     return data.isApproved;
-  } catch (err) {
-    console.error("Error checking admin approval:", err);
+  } catch (error) {
+    console.error("Admin approval check failed:", error);
     return false;
   }
 };
@@ -153,6 +160,10 @@ export const login = async (req, res) => {
         department: user.department ?? null,
       }
     );
+    
+    // Set token in the response header
+    res.setHeader('Authorization', `Bearer ${token}`);
+
 
     return res.status(200).json({
       message: "Login successful",
