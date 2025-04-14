@@ -1,5 +1,4 @@
 import { getServiceStats } from '../utils/fetchStats.js';
-import axios from 'axios';
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -12,30 +11,42 @@ export const getDashboardStats = async (req, res) => {
 
 
 
-export const createAdmin = async (req, res) => {
+export const getPendingAdmins = async (req, res) => {
   try {
-    const { name, email, phone, password, role, department, roomNumber } = req.body;
-
-    // Validate allowed roles
-    const allowedRoles = ['leave-admin', 'gatepass-admin', 'notification-admin', 'security'];
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ message: 'Invalid admin role' });
-    }
-
-    // Call auth-service to register the new admin
-    const response = await axios.post(`${process.env.AUTH_SERVICE_URL}/api/auth/register`, {
-      name,
-      email,
-      phone,
-      password,
-      role,
-      department,
-      roomNumber: null, // Admins don't have rooms
+    const pendingAdmins = await prisma.user.findMany({
+      where: {
+        isApproved: false,
+        OR: [
+          { role: 'department_admin' },
+          { role: 'academic_admin' },
+          { role: 'hostel_admin' },
+          { role: 'security_admin' }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        createdAt: true
+      }
     });
-
-    res.status(201).json({ message: 'Admin registered successfully', data: response.data });
+    res.status(200).json({ pendingAdmins });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Failed to register admin', error: err.response?.data || err.message });
+    res.status(500).json({ message: 'Failed to fetch pending admins', error: err.message });
+  }
+};
+
+export const approveAdmin = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isApproved: true }
+    });
+    res.status(200).json({ message: `Admin ${user.name} approved successfully`, user });
+  } catch (err) {
+    res.status(500).json({ message: 'Error approving admin', error: err.message });
   }
 };

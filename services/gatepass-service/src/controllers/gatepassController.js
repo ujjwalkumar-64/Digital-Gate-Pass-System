@@ -1,14 +1,14 @@
 import { PrismaClient } from '@prisma/client';
-import { sendGatePassNotification,sendGatePassUsedNotification } from '../utils/notificationUtils'; // Assuming notificationUtils sends notifications
+import { sendGatePassIssuedNotification,sendGatePassUsedNotification , sendGatePassExpiredNotification} from '../utils/notificationUtils'; // Assuming notificationUtils sends notifications
 
 const prisma = new PrismaClient();
 
 export const issueGatePass = async (req, res) => {
-  const { leaveId } = req.body;
-
+  const { hostelAdminId } = req.user.id; 
+  const{leaveId}= req.params;
   try {
-    // Find the leave request by ID
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    // Fetch the approved leave request with user details
+    const leaveRequest = await prisma.leave.findUnique({
       where: { id: leaveId },
       include: { user: true },
     });
@@ -17,30 +17,44 @@ export const issueGatePass = async (req, res) => {
       return res.status(404).json({ message: 'Leave request not found' });
     }
 
-    // Check if the leave request has been approved and if it's in the 'done' stage
-    if (leaveRequest.status !== 'approved' || leaveRequest.currentStage !== 'done') {
-      return res.status(400).json({ message: 'Leave request is not approved yet' });
+    if (leaveRequest.status !== 'approved') {
+      return res.status(400).json({ message: 'Leave request not approved yet' });
     }
 
-    // Create a gate pass for the leave request
+    // Check if gatepass already exists for this leave
+    const existingGatePass = await prisma.gatePass.findFirst({
+      where: { leaveId },
+    });
+
+    if (existingGatePass) {
+      return res.status(409).json({ message: 'Gate pass already issued for this leave request' });
+    }
+
+    // Create gatepass
     const gatePass = await prisma.gatePass.create({
       data: {
-        leaveId,
-        validUntil: leaveRequest.toDate,
-        status: 'active',
-        workflowType: leaveRequest.workflowType,
+        leaveId: leaveRequest.id,
+        userId: leaveRequest.userId,
+        reason: leaveRequest.reason,
+        fromDate: leaveRequest.fromDate,
+        toDate: leaveRequest.toDate,
+        department: leaveRequest.department,
+        flowType: leaveRequest.flowType,
+        status: 'issued',
+        issuedById: hostelAdminId || null,
       },
     });
 
-    // Send notification about the gate pass creation
-    await sendGatePassNotification(leaveRequest.userId, gatePass);
+    // Notify user
+    await sendGatePassIssuedNotification(leaveRequest.userId, gatePass);
 
-    return res.status(201).json(gatePass);
+    return res.status(201).json({ message: 'Gate pass issued successfully', gatePass });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('Error issuing gatepass:', error);
+    return res.status(500).json({ message: 'Server error while issuing gate pass' });
   }
 };
+
 
 
 // View gate passes for logged-in user
@@ -59,72 +73,64 @@ export const myGatePasses = async (req, res) => {
   }
 };
 
-// // Scan gate pass for OUT/IN logging
-// export const scanGatePass = async (req, res) => {
-//   const { id } = req.params;
 
-//   try {
-//     const gatePass = await prisma.gatePass.findUnique({ where: { id } });
-//     if (!gatePass) return res.status(404).json({ message: 'Gate pass not found' });
 
-//     const now = new Date();
-//     const update = {};
-
-//     if (!gatePass.gateOutAt) {
-//       update.gateOutAt = now;
-//     } else if (!gatePass.gateInAt) {
-//       update.gateInAt = now;
-//       update.status = 'used';
-//     } else {
-//       return res.status(400).json({ message: 'Already used gate pass' });
-//     }
-
-//     const updated = await prisma.gatePass.update({ where: { id }, data: update });
-//     res.json({ message: 'Gate scanned successfully', updated });
-//   } catch (err) {
-//     res.status(500).json({ message: 'Scan failed', error: err.message });
-//   }
-// };
-
-export const approveGatePass = async (req, res) => {
-  const { gatePassId, status } = req.body;
+export const verifyGatePass = async (req, res) => {
+  const { gatePassId, status, verifierId } = req.body;
 
   try {
-    // Find the gate pass by ID
     const gatePass = await prisma.gatePass.findUnique({
       where: { id: gatePassId },
+      include: { user: true },
     });
 
     if (!gatePass) {
       return res.status(404).json({ message: 'Gate pass not found' });
     }
 
-    // Validate the gate pass status
     if (status === 'used') {
-      // Update the gatepass as used and set gateOutAt time
-      await prisma.gatePass.update({
+      if (gatePass.status !== 'issued') {
+        return res.status(400).json({ message: 'Gate pass must be in "issued" state to mark as used' });
+      }
+
+      const updated = await prisma.gatePass.update({
         where: { id: gatePassId },
         data: {
           status: 'used',
           gateOutAt: new Date(),
+          verifiedOutById: verifierId,
         },
       });
 
-      // Send notification about gatepass usage
-      await sendGatePassUsedNotification(gatePass.leave.userId);
-    } else if (status === 'expired') {
-      // Expire the gate pass
-      await prisma.gatePass.update({
+      await sendGatePassUsedNotification(gatePass.userId, gatePassId);
+      return res.status(200).json({ message: 'Exit verified successfully', gatePass: updated });
+    }
+
+    if (status === 'expired') {
+      if (gatePass.status !== 'used') {
+        return res.status(400).json({ message: 'Gate pass must be "used" to mark as expired' });
+      }
+
+      const updated = await prisma.gatePass.update({
         where: { id: gatePassId },
         data: {
           status: 'expired',
+          gateInAt: new Date(),
+          verifiedInById: verifierId,
         },
       });
+
+      await sendGatePassExpiredNotification(gatePass.userId, gatePassId);
+      return res.status(200).json({ message: 'Re-entry verified and gate pass expired', gatePass: updated });
     }
 
-    return res.status(200).json({ message: 'Gate pass status updated successfully' });
+    return res.status(400).json({ message: 'Invalid status provided' });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('Gate pass verification failed:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+
+

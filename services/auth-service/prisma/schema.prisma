@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -8,29 +9,25 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  password     String
-  phone        String
-  role         String   // student, leave-admin, super-admin etc.
-  department   String   // Mandatory for both student & admins
-  room_number  String?  // For students only
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  leaves       Leave[] // One student -> Many leaves
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       Role
+  phone      String
+  roomNumber String?
+  rollNumber String?
+  department String?
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
-model Leave {
-  id          String   @id @default(uuid())
-  reason      String
-  fromDate    DateTime
-  toDate      DateTime
-  status      String   // pending, approved, rejected, etc.
-  department  String   // auto-filled from student
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
+enum Role {
+  student
+  department_admin
+  academic_admin
+  hostel_admin
+  security_admin
+  super_admin
 }

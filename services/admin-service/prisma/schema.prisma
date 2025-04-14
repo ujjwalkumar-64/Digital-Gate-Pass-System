@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminRequest {
+  id           String        @id @default(uuid())
+  requesterId  String
+  targetEmail  String
+  role         Role
+  department   String?       // only required for department admins
+  status       RequestStatus @default(pending)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  requester    User          @relation(fields: [requesterId], references: [id])
+}
+
+model User {
+  id            String         @id
+  adminRequests AdminRequest[]
+}
+
+enum RequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum Role {
+  department_admin
+  academic_admin
+  hostel_admin
+  security_admin
+}

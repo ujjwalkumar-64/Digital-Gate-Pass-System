@@ -15,22 +15,39 @@ datasource db {
 }
 
 model GatePass {
-  id          String     @id @default(uuid())
-  leaveId     String     @unique
-  issuedAt    DateTime   @default(now())
-  validUntil  DateTime
-  gateOutAt   DateTime?
-  gateInAt    DateTime?
-  status      String     @default("active") // active, used, expired
-  workflowType String    // standard, hostel_direct
-  
-  leave       LeaveRequest @relation(fields: [leaveId], references: [id])
+  id               String         @id @default(uuid())
+  userId           String
+  leaveId          String         @unique
+  reason           String
+  fromDate         DateTime
+  toDate           DateTime
+  status           GatePassStatus @default(pending)
+  department       String
+  flowType         FlowType       @default(standard)
+  gateOutAt        DateTime?
+  gateInAt         DateTime?
+  issuedById       String?
+  verifiedOutById  String?        // security admin who approved exit
+  verifiedInById   String?        // security admin who approved re-entry
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user             User           @relation(fields: [userId], references: [id])
+  verifiedOutBy    User?          @relation("VerifiedOutBy", fields: [verifiedOutById], references: [id])
+  verifiedInBy     User?          @relation("VerifiedInBy", fields: [verifiedInById], references: [id])
+  leave            LeaveRequest   @relation(fields: [leaveId], references: [id])
 }
 
-model LeaveRequest {
-  id        String     @id @default(uuid())
-  status    String
-  userId    String
-  gatePass  GatePass?
+enum GatePassStatus {
+  pending
+  issued
+  rejected
+  expired
+}
+
+
+enum FlowType {
+  standard
+  hostel_direct
 }
 

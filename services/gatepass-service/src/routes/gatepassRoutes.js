@@ -3,13 +3,13 @@ import { verifyToken } from '../middleware/auth.js';
 import {
   issueGatePass,
   myGatePasses,
-  approveGatePass
+  verifyGatePass
 } from '../controllers/gatepassController.js';
 
 const router = express.Router();
 
-router.post('/issue/:leaveId', verifyToken(["hostel"]), issueGatePass);
+router.post('/issue/:leaveId', verifyToken(["hostel_admin"]), issueGatePass);
 router.get('/me', verifyToken(["student"]), myGatePasses);
-router.patch('/scan/:id', verifyToken(["security"]), approveGatePass);
+router.patch('/verify/gatePassId', verifyToken(["security_admin"]), verifyGatePass);
 
 export default router;
