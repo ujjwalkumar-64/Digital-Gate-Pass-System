@@ -2,13 +2,13 @@ import { PrismaClient } from '../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
-import { sendLeaveRequestNotification , sendApprovalNotification, sendRejectionNotification} from '../utils/notificationUtils.js'; // Assuming notificationUtils sends notifications
+import { sendLeaveRequestNotification , sendLeaveApprovalNotification, sendRejectionNotification} from '../utils/notificationUtils.js'; // Assuming notificationUtils sends notifications
 
 
 export const createLeaveRequest = async (req, res) => {
   try {
     const { reason, fromDate, toDate, flowType } = req.body;
-    const { id: userId, role, department } = req.user;
+    const { id: userId, role, department, email,name } = req.user;
 
     if(role !== 'student'){
       return res.status(403).json({ message: 'Only students can request leave' });
@@ -25,12 +25,33 @@ export const createLeaveRequest = async (req, res) => {
         flowType: flowType || 'standard',
         status: 'pending',
         department,
-        currentStage:'department'
+        currentStage: flowType === 'hostel_direct' ? 'hostel' : 'department'
       }
     });
 
-    // Send leave notification to department_admin or hostel_admin based on flow
-    // await sendLeaveRequestNotification(userId, leaveRequest);
+    const payload = {
+      userId,
+      email,
+      name,
+      role,
+      department,
+      leaveRequest
+    }
+
+    // 2. Find the right admin(s) to notify
+    const targetRole = flowType === 'hostel_direct' ? 'hostel_admin' : 'department_admin';
+    const queryParams = flowType === 'hostel_direct' ? '' : `&department=${department}`;
+
+    const { data: admins } = await axios.get(`http://localhost:5005/api/auth/admins?role=${targetRole}${queryParams}`);
+    
+    if (!admins || admins.length === 0) {
+      return res.status(404).json({ message: 'No admin found to notify' });
+    }
+
+    // 3. Notify all matched admins
+    for (const admin of admins) {
+      await sendLeaveRequestNotification(admin, payload);
+    }
 
     return res.status(201).json({
       message: 'Leave request submitted successfully',
@@ -96,14 +117,43 @@ export const approveLeaveRequest = async (req, res) => {
       },
     });
 
-    // await sendApprovalNotification(user.id, leaveRequest.userId, nextStage);
+        // 1. ✅ Notify student (email + socket)
+        await sendLeaveApprovalNotification(leaveRequest.user, {
+          approvedBy: user.name,
+          currentStage: nextStage,
+          status: nextStage === 'done' ? 'approved' : 'forwarded',
+          leaveRequest,
+        });
 
+
+    if (nextStage !== 'done') {
+      const nextRole = nextStage === 'academic' ? 'academic_admin' :
+                       nextStage === 'hostel' ? 'hostel_admin' : null;
+
+      const queryParams = nextRole === 'academic_admin'
+        ? `role=${nextRole}`
+        : `role=${nextRole}&department=${department}`;
+
+      const { data: nextAdmins } = await axios.get(`http://localhost:5000/api/users/admins?${queryParams}`);
+
+      for (const admin of nextAdmins) {
+        await sendLeaveRequestNotification(admin, {
+          userId: leaveRequest.user.id,
+          email: leaveRequest.user.email,
+          name: leaveRequest.user.name,
+          role: leaveRequest.user.role,
+          department,
+          leaveRequest,
+        });
+      }
+    }
     return res.status(200).json({ message: `Leave request moved to ${nextStage}` });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 export const rejectLeaveRequest = async (req, res) => {
   const { leaveRequestId } = req.params; // Get leave request ID from route params
@@ -154,13 +204,12 @@ export const rejectLeaveRequest = async (req, res) => {
       },
     });
 
+    const  data = await axios.get(`http://localhost:5000/api/users/admins?${userId}`);
     // Prepare rejection notification message
-    const message = `Your leave request for the period ${fromDate} to ${toDate} has been rejected. Reason: ${reason}`;
-
-    // Send rejection notification to the user
-    // await sendRejectionNotification(userId, message);
-
-    // Return success response
+    const message = `Hello ${data.name} your leave request for the period ${fromDate} to ${toDate} has been rejected.\n\n Reason: ${reason}`;
+ 
+    await sendRejectionNotification(data, message);
+ 
     res.status(200).json({ success: 'Leave request rejected successfully' });
   } catch (error) {
     console.error('Error rejecting leave request:', error);

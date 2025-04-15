@@ -224,3 +224,70 @@ export const updateUserApproval = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getAdminsByRole = async (req, res) => {
+  try {
+    const { role, department } = req.query;
+
+    if (!role) {
+      return res.status(400).json({ message: 'Role is required' });
+    }
+
+    const whereClause = {
+      role,
+      isApproved: true
+    };
+
+    if (department) {
+      whereClause.department = department;
+    }
+
+    const admins = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phoneNumber: true,
+        department: true
+      }
+    });
+
+    return res.json(admins);
+  } catch (error) {
+    console.error('Get Admins Error:', error.message);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'UserId is required' });
+    }
+
+    const whereClause = {
+      id:userId,
+      isApproved: true
+    };
+
+
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+         
+      }
+    });
+
+    return res.json(users);
+  } catch (error) {
+    console.error('Get Admins Error:', error.message);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
