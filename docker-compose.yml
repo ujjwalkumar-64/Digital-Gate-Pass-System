@@ -1,0 +1,121 @@
+version: '3.9'
+
+services:
+  # gateway:
+  #   build: ./gateway
+  #   ports:
+  #     - '8000:8000'
+  #   depends_on:
+  #     - auth-service
+  #     - leave-service
+  #     - gatepass-service
+  #   environment:
+  #     NODE_ENV: development
+
+  auth-db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: auth_db
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - '3001:3000'
+    environment:
+      DATABASE_URL: postgresql://auth_user:auth_pass@auth-db:5432/auth_db
+      JWT_SECRET: DStTeNYdme8mUpVZ8SOcLn1Mz4Qf!gHJc69PjGxU8BYbCFwuDU
+    depends_on:
+      - auth-db
+
+  leave-db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: leave_user
+      POSTGRES_PASSWORD: leave_pass
+      POSTGRES_DB: leave_db
+    volumes:
+      - leave-db-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
+  leave-service:
+    build: ./services/leave-service
+    ports:
+      - '3002:3000'
+    environment:
+      DATABASE_URL: postgresql://leave_user:leave_pass@leave-db:5432/leave_db
+      JWT_SECRET: NaMA8yZZyCgvp46wOjQW%XJNHyuROSo35wZSN0lMlJKabI^$GD
+    depends_on:
+      - leave-db
+
+  # gatepass-db:
+  #   image: postgres:15
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: gate_user
+  #     POSTGRES_PASSWORD: gate_pass
+  #     POSTGRES_DB: gate_db
+  #   volumes:
+  #     - gatepass-db-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5435:5432"
+
+  # gatepass-service:
+  #   build: ./services/gatepass-service
+  #   ports:
+  #     - '3003:3000'
+  #   environment:
+  #     DATABASE_URL: postgresql://gate_user:gate_pass@gatepass-db:5432/gate_db
+  #   depends_on:
+  #     - gatepass-db
+
+  # redis:
+  #   image: redis:alpine
+  #   ports:
+  #     - '6379:6379'
+
+  # kafka:
+  #   image: bitnami/kafka:latest
+  #   ports:
+  #     - '9092:9092'
+  #   environment:
+  #     KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+  #     KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9092
+  #     ALLOW_PLAINTEXT_LISTENER: "yes"
+  #   depends_on:
+  #     - zookeeper
+
+  # zookeeper:
+  #   image: bitnami/zookeeper:latest
+  #   ports:
+  #     - '2181:2181'
+  #   environment:
+  #     ALLOW_ANONYMOUS_LOGIN: "yes"
+
+    # Adding pgAdmin service
+ 
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  auth-db-data:
+  leave-db-data:
+  pgadmin-data:
+  # gatepass-db-data:

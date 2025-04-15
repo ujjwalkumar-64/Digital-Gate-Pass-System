@@ -60,3 +60,6 @@ Thumbs.db
 
 # Miscellaneous
 *.tgz
+
+adminflow.md
+serviceDependency.md

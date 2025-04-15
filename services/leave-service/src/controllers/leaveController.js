@@ -1,52 +1,54 @@
-import { PrismaClient } from '@prisma/client';
-import { sendLeaveRequestNotification , sendApprovalNotification, sendRejectionNotification} from '../utils/notificationUtils'; // Assuming notificationUtils sends notifications
+import { PrismaClient } from '../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
+import { sendLeaveRequestNotification , sendApprovalNotification, sendRejectionNotification} from '../utils/notificationUtils.js'; // Assuming notificationUtils sends notifications
+
+
 export const createLeaveRequest = async (req, res) => {
-  const { userId, reason, fromDate, toDate, leaveType, workflowType } = req.body;
-
   try {
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const { reason, fromDate, toDate, flowType } = req.body;
+    const { id: userId, role, department } = req.user;
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if(role !== 'student'){
+      return res.status(403).json({ message: 'Only students can request leave' });
     }
 
-    // Create leave request with initial stage as 'department'
-    const leaveRequest = await prisma.leaveRequest.create({
+ 
+    // Create the leave request with default status and stage
+    const leaveRequest = await prisma.leave.create({
       data: {
         userId,
         reason,
-        fromDate,
-        toDate,
-        leaveType,
-        workflowType,
-        currentStage: 'department', // Initial stage is department
-        approvals: JSON.stringify({}),
-      },
+        fromDate: new Date(fromDate),
+        toDate: new Date(toDate),
+        flowType: flowType || 'standard',
+        status: 'pending',
+        department,
+        currentStage:'department'
+      }
     });
 
-    // Send notification about new leave request
-    await sendLeaveRequestNotification(userId, leaveRequest);
+    // Send leave notification to department_admin or hostel_admin based on flow
+    // await sendLeaveRequestNotification(userId, leaveRequest);
 
-    return res.status(201).json(leaveRequest);
+    return res.status(201).json({
+      message: 'Leave request submitted successfully',
+      leave: leaveRequest
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('Create Leave Request Error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 
 export const approveLeaveRequest = async (req, res) => {
-  const { leaveId, adminId, department } = req.body;
+  const { leaveId } = req.params;
+  const { user } = req; // From JWT middleware
 
   try {
-    // Find the leave request by ID
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    const leaveRequest = await prisma.leave.findUnique({
       where: { id: leaveId },
     });
 
@@ -54,53 +56,61 @@ export const approveLeaveRequest = async (req, res) => {
       return res.status(404).json({ message: 'Leave request not found' });
     }
 
-    // Get the current stage of the leave request
-    const { currentStage, workflowType } = leaveRequest;
+    const { currentStage, flowType, department, status } = leaveRequest;
 
-    // Validate the current stage and allow approval based on it
-    let newStage = '';
-    if (currentStage === 'department' && department === 'department') {
-      newStage = 'academic';
-    } else if (currentStage === 'academic') {
-      newStage = 'hostel';
-    } else if (currentStage === 'hostel') {
-      newStage = 'done';
-    } else if (workflowType === 'hostel_direct' && currentStage === 'department') {
-      newStage = 'done'; // Special case where hostel direct skips department and academic
-    } else {
-      return res.status(400).json({ message: 'Invalid stage for approval' });
+    if (status === 'approved' || status === 'rejected') {
+      return res.status(400).json({ message: 'Leave already processed' });
     }
 
-    // Update the current stage
-    await prisma.leaveRequest.update({
+    let nextStage = '';
+    let allow = false;
+
+    if (flowType === 'standard') {
+      if (currentStage === 'department' && user.role === 'department_admin' && user.department === department) {
+        nextStage = 'academic';
+        allow = true;
+      } else if (currentStage === 'academic' && user.role === 'academic_admin') {
+        nextStage = 'hostel';
+        allow = true;
+      } else if (currentStage === 'hostel' && user.role === 'hostel_admin') {
+        nextStage = 'done';
+        allow = true;
+      }
+    } else if (flowType === 'hostel_direct') {
+      if (currentStage === 'department' && user.role === 'hostel_admin') {
+        nextStage = 'done';
+        allow = true;
+      }
+    }
+
+    if (!allow) {
+      return res.status(403).json({ message: 'You are not authorized to approve this leave at this stage' });
+    }
+
+    await prisma.leave.update({
       where: { id: leaveId },
       data: {
-        currentStage: newStage,
-        approvals: {
-          update: {
-            [newStage]: new Date(),
-          },
-        },
+        currentStage: nextStage,
+        status: nextStage === 'done' ? 'approved' : 'forwarded',
+        updatedAt: new Date(),
       },
     });
 
-    // Send notification about the approval
-    await sendApprovalNotification(adminId, leaveRequest.userId, newStage);
+    // await sendApprovalNotification(user.id, leaveRequest.userId, nextStage);
 
-    return res.status(200).json({ message: `Leave request moved to ${newStage} stage` });
+    return res.status(200).json({ message: `Leave request moved to ${nextStage}` });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
 
-
 export const rejectLeaveRequest = async (req, res) => {
   const { leaveRequestId } = req.params; // Get leave request ID from route params
 
   try {
     // Fetch the leave request from the database
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    const leaveRequest = await prisma.leave.findUnique({
       where: { id: leaveRequestId },
     });
 
@@ -108,19 +118,47 @@ export const rejectLeaveRequest = async (req, res) => {
       return res.status(404).json({ error: 'Leave request not found' });
     }
 
-    // Update the status to 'rejected'
-    const updatedLeaveRequest = await prisma.leaveRequest.update({
+    // Extract leave request details
+    const {  flowType, department, userId, reason, fromDate, toDate } = leaveRequest;
+    let {currentStage} = leaveRequest;
+
+    let allowRejection = false;
+    
+    // Check if the admin has authorization to reject based on the current stage and flowType
+    if (flowType === 'standard') {
+      if (currentStage === 'department' && req.user.role === 'department_admin' && req.user.department === department) {
+        allowRejection = true;
+      } else if (currentStage === 'academic' && req.user.role === 'academic_admin') {
+        allowRejection = true;
+      } else if (currentStage === 'hostel' && req.user.role === 'hostel_admin') {
+        allowRejection = true;
+      }
+    } else if (flowType === 'hostel_direct') {
+      if (currentStage === 'department' && req.user.role === 'hostel_admin') {
+        allowRejection = true;
+        currentStage='hostel';
+      }
+    }
+
+    if (!allowRejection) {
+      return res.status(403).json({ error: 'You are not authorized to reject this leave request at this stage' });
+    }
+
+    // Update the leave request status to 'rejected'
+    const updatedLeaveRequest = await prisma.leave.update({
       where: { id: leaveRequestId },
       data: {
         status: 'rejected',
+        currentStage:currentStage,
+        updatedAt: new Date(), // Update the time of rejection
       },
     });
 
     // Prepare rejection notification message
-    const message = `Your leave request for the period ${updatedLeaveRequest.fromDate} to ${updatedLeaveRequest.toDate} has been rejected. Reason: ${updatedLeaveRequest.reason}`;
+    const message = `Your leave request for the period ${fromDate} to ${toDate} has been rejected. Reason: ${reason}`;
 
     // Send rejection notification to the user
-    await sendRejectionNotification(leaveRequest.userId,message);
+    // await sendRejectionNotification(userId, message);
 
     // Return success response
     res.status(200).json({ success: 'Leave request rejected successfully' });
@@ -131,14 +169,36 @@ export const rejectLeaveRequest = async (req, res) => {
 };
 
  
-export const myLeaves = async (req, res) => {
+
+// check
+export const getAllLeaveRequests = async (req, res) => {
   try {
-    const leaves = await prisma.leaveRequest.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json(leaves);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch leaves', error: err.message });
+    const { role, department } = req.user;
+
+    let leaves;
+
+    if (role ===  'department_admin') {
+      leaves = await prisma.leave.findMany({ 
+        where: { department },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+    } else if (['super_admin', 'academic_admin', 'hostel_admin'].includes(role)) {
+      leaves = await prisma.leave.findMany({     
+        orderBy:[
+          { department:'asc'},
+           { createdAt: 'desc' }
+          ]
+      });
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    return res.status(200).json(leaves);
+  } catch (error) {
+    console.error('Fetch leave error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// const userInfo = await axios.get(`http://auth-service/api/users/${leave.userId}`);

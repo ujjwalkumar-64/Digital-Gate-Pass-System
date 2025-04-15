@@ -1,22 +1,15 @@
 import { PrismaClient } from '../generated/prisma/index.js';
-
-
-
 const prisma = new PrismaClient();
 
 import axios from "axios"
-
 import bcrypt from 'bcrypt';
 import { signToken } from '../utils/jwt.js';
 
-const allowedDepartments = [
-  'computer science and engineering',
-  'chemical engineering',
-  'petroleum engineering',
-  'mathematical and computing department'
-];
+
 
 export const registerUser = async (req, res) => {
+  const allowedDepartments = ['CSE', 'CHEMICAL', 'PETROLEUM', 'MNC'];
+
   try {
     const {
       name,
@@ -29,8 +22,6 @@ export const registerUser = async (req, res) => {
       department,
     } = req.body;
 
-
-
     if (!name || !email || !password || !role || !phone) {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
@@ -39,39 +30,33 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid role provided.' });
     }
 
+    const normalizedDepartment = department?.toUpperCase();
+
     if (role === 'student') {
       if (!rollNumber || !roomNumber || !department) {
         return res.status(400).json({ message: 'Student must provide rollNumber, roomNumber, and department.' });
       }
-      if (!allowedDepartments.includes(department)) {
+      if (!allowedDepartments.includes(normalizedDepartment)) {
         return res.status(400).json({ message: 'Invalid department selected.' });
       }
     }
 
-    if (role === 'department_admin' && !department) {
-      return res.status(400).json({ message: 'Department admin must have department.' });
+    if (role === 'department_admin') {
+      if (!department) {
+        return res.status(400).json({ message: 'Department admin must have department.' });
+      }
+      if (!allowedDepartments.includes(normalizedDepartment)) {
+        return res.status(400).json({ message: 'Invalid department selected.' });
+      }
     }
-
-    // Check if email already exists
+    
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(409).json({ message: 'User already exists with this email.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const isApproved = (role === 'student' || role === 'super_admin') ? true : false;
-    console.log("Create user payload: ", {
-      name,
-      email,
-      password,
-      role,
-      phone,
-      roomNumber,
-      rollNumber,
-      department,
-      isApproved
-    });
+    const isApproved = (role === 'student' || role === 'super_admin');
 
     const newUser = await prisma.user.create({
       data: {
@@ -80,15 +65,46 @@ export const registerUser = async (req, res) => {
         password: hashedPassword,
         role,
         phone,
-        rollNumber: role === 'student' ? roomNumber : null,
-        roomNumber: role === 'student' ? rollNumber : null,
-        department: (role === 'student' || role === 'department_admin') ? department : null,
+        rollNumber: role === 'student' ? rollNumber : null,
+        roomNumber: role === 'student' ? roomNumber : null,
+        department: (role === 'student' || role === 'department_admin') ? normalizedDepartment : null,
         isApproved
       },
     });
-    const token = signToken({ id: newUser.id, role: newUser.role });
-    
-    // Set token in the response header
+
+    if (['department_admin', 'academic_admin', 'hostel_admin', 'security_admin'].includes(role)) {
+      try {
+        await axios.post('http://localhost:5005/api/admin/admin-request', {
+          requesterId: newUser.id,
+          targetEmail: newUser.email,
+          role,
+          department: role=== 'department_admin' ? normalizedDepartment: null,
+          requesterName: newUser.name,
+        })
+      } catch (notifyError) {
+        console.error('Admin request creation failed:', notifyError);
+
+        // rollback user creation
+        await prisma.user.delete({ where: { id: newUser.id } });
+
+        return res.status(500).json({ message: 'Admin request failed, registration rolled back.' });
+      }
+    }
+     
+
+ 
+
+    const token = signToken(
+      { 
+        id: newUser.id, 
+        role: newUser.role , 
+        department:newUser.department,
+        isApproved:newUser.isApproved,
+        phone:newUser.phone,
+        email:newUser.email,
+
+      
+      });
     res.setHeader('Authorization', `Bearer ${token}`);
 
     return res.status(201).json({
@@ -98,7 +114,7 @@ export const registerUser = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        department: newUser.department,
+        department: newUser.department ?? null,
         isApproved: newUser.isApproved
       },
       token
@@ -109,6 +125,7 @@ export const registerUser = async (req, res) => {
     return res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // need to change utl
 const isAdminApproved = async (email, role) => {
@@ -156,8 +173,12 @@ export const login = async (req, res) => {
     const token = signToken(
       {
         id: user.id,
+        name: user.name,
         role: user.role,
+        email: user.email,
+        phone:user.phone,
         department: user.department ?? null,
+        isApproved: user.isApproved
       }
     );
     
@@ -184,3 +205,22 @@ export const login = async (req, res) => {
   }
 };
 
+export const updateUserApproval = async (req, res) => {
+  const { userId, isApproved } = req.body;
+  
+  if (!userId || typeof userId !== 'string') {
+    return res.status(400).json({ message: 'Invalid or missing userId' });
+  }
+  
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { isApproved },
+    });
+
+    return res.status(200).json({ message: 'User approval status updated successfully', updatedUser });
+  } catch (error) {
+    console.error('Error updating user approval status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

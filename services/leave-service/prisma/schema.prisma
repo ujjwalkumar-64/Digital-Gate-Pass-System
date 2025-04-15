@@ -8,19 +8,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model LeaveRequest {
-  id            String   @id @default(uuid())
-  userId        String
+model Leave {
+  id            String      @id @default(uuid())
   reason        String
   fromDate      DateTime
   toDate        DateTime
-  leaveType     String   // e.g., personal, sem-break
-  status        String   @default("pending") // pending, approved, rejected
-  workflowType  String   // standard, hostel_direct
-  currentStage  String   // department, academic, hostel, done
-  approvals     Json     // { "department": timestamp, "academic": timestamp, "hostel": timestamp }
-  createdAt     DateTime @default(now())
-
-  user          User     @relation(fields: [userId], references: [id])
+  status        LeaveStatus @default(pending)
+  userId        String
+  department    String
+  currentStage  String
+  flowType      FlowType    @default(standard)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
 }
 
+
+enum LeaveStatus {
+  pending
+  forwarded
+  approved
+  rejected
+}
+
+enum FlowType {
+  standard
+  hostel_direct
+}

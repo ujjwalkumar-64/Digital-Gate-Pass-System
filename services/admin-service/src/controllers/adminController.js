@@ -122,7 +122,8 @@ export const createAdminRequest = async (req, res) => {
       existingUser = await prisma.user.create({
         data: {
           id: requesterId,
-          name: requesterName
+          name: requesterName,
+          role
         }
       });
     }

@@ -17,12 +17,13 @@ model AdminRequest {
   status      RequestStatus @default(pending)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  requester   User          @relation(fields: [requesterId], references: [id])
+  requester   User          @relation(fields: [requesterId], references: [id] )
 }
 
 model User {
   id            String         @id
   name          String
+  role          Role
   adminRequests AdminRequest[]
 }
 

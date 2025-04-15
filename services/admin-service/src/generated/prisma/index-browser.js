@@ -130,7 +130,8 @@ exports.Prisma.AdminRequestScalarFieldEnum = {
 
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
-  name: 'name'
+  name: 'name',
+  role: 'role'
 };
 
 exports.Prisma.SortOrder = {

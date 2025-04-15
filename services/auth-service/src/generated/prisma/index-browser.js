@@ -132,6 +132,17 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AdminRequestScalarFieldEnum = {
+  id: 'id',
+  requesterId: 'requesterId',
+  targetEmail: 'targetEmail',
+  role: 'role',
+  department: 'department',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -155,8 +166,15 @@ exports.Role = exports.$Enums.Role = {
   super_admin: 'super_admin'
 };
 
+exports.RequestStatus = exports.$Enums.RequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected'
+};
+
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  AdminRequest: 'AdminRequest'
 };
 
 /**

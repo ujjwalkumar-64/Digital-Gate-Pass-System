@@ -117,22 +117,18 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.LeaveRequestScalarFieldEnum = {
+exports.Prisma.LeaveScalarFieldEnum = {
   id: 'id',
-  userId: 'userId',
   reason: 'reason',
   fromDate: 'fromDate',
   toDate: 'toDate',
   status: 'status',
-  departmentApproved: 'departmentApproved',
-  academicApproved: 'academicApproved',
-  hostelApproved: 'hostelApproved',
-  securityVerified: 'securityVerified',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.UserScalarFieldEnum = {
-  id: 'id'
+  userId: 'userId',
+  department: 'department',
+  currentStage: 'currentStage',
+  flowType: 'flowType',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -144,11 +140,20 @@ exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 };
+exports.LeaveStatus = exports.$Enums.LeaveStatus = {
+  pending: 'pending',
+  forwarded: 'forwarded',
+  approved: 'approved',
+  rejected: 'rejected'
+};
 
+exports.FlowType = exports.$Enums.FlowType = {
+  standard: 'standard',
+  hostel_direct: 'hostel_direct'
+};
 
 exports.Prisma.ModelName = {
-  LeaveRequest: 'LeaveRequest',
-  User: 'User'
+  Leave: 'Leave'
 };
 
 /**

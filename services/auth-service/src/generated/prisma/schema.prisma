@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          Role
+  phone         String
+  roomNumber    String?
+  rollNumber    String?
+  department    String?
+  isApproved    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  adminRequests AdminRequest[]
+}
+
+model AdminRequest {
+  id          String        @id @default(uuid())
+  requesterId String
+  targetEmail String
+  role        Role
+  department  String?
+  status      RequestStatus @default(pending)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  requester   User          @relation(fields: [requesterId], references: [id])
+}
+
+enum Role {
+  student
+  department_admin
+  academic_admin
+  hostel_admin
+  security_admin
+  super_admin
+}
+
+enum RequestStatus {
+  pending
+  approved
+  rejected
+}

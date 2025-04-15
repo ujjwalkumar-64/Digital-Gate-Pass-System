@@ -2132,16 +2132,19 @@ export namespace Prisma {
   export type UserMinAggregateOutputType = {
     id: string | null
     name: string | null
+    role: $Enums.Role | null
   }
 
   export type UserMaxAggregateOutputType = {
     id: string | null
     name: string | null
+    role: $Enums.Role | null
   }
 
   export type UserCountAggregateOutputType = {
     id: number
     name: number
+    role: number
     _all: number
   }
 
@@ -2149,16 +2152,19 @@ export namespace Prisma {
   export type UserMinAggregateInputType = {
     id?: true
     name?: true
+    role?: true
   }
 
   export type UserMaxAggregateInputType = {
     id?: true
     name?: true
+    role?: true
   }
 
   export type UserCountAggregateInputType = {
     id?: true
     name?: true
+    role?: true
     _all?: true
   }
 
@@ -2237,6 +2243,7 @@ export namespace Prisma {
   export type UserGroupByOutputType = {
     id: string
     name: string
+    role: $Enums.Role
     _count: UserCountAggregateOutputType | null
     _min: UserMinAggregateOutputType | null
     _max: UserMaxAggregateOutputType | null
@@ -2259,6 +2266,7 @@ export namespace Prisma {
   export type UserSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    role?: boolean
     adminRequests?: boolean | User$adminRequestsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
@@ -2266,19 +2274,22 @@ export namespace Prisma {
   export type UserSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    role?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    role?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
     id?: boolean
     name?: boolean
+    role?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "role", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     adminRequests?: boolean | User$adminRequestsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -2294,6 +2305,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       name: string
+      role: $Enums.Role
     }, ExtArgs["result"]["user"]>
     composites: {}
   }
@@ -2720,6 +2732,7 @@ export namespace Prisma {
   interface UserFieldRefs {
     readonly id: FieldRef<"User", 'String'>
     readonly name: FieldRef<"User", 'String'>
+    readonly role: FieldRef<"User", 'Role'>
   }
     
 
@@ -3180,7 +3193,8 @@ export namespace Prisma {
 
   export const UserScalarFieldEnum: {
     id: 'id',
-    name: 'name'
+    name: 'name',
+    role: 'role'
   };
 
   export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -3364,12 +3378,14 @@ export namespace Prisma {
     NOT?: UserWhereInput | UserWhereInput[]
     id?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
+    role?: EnumRoleFilter<"User"> | $Enums.Role
     adminRequests?: AdminRequestListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
     id?: SortOrder
     name?: SortOrder
+    role?: SortOrder
     adminRequests?: AdminRequestOrderByRelationAggregateInput
   }
 
@@ -3379,12 +3395,14 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     name?: StringFilter<"User"> | string
+    role?: EnumRoleFilter<"User"> | $Enums.Role
     adminRequests?: AdminRequestListRelationFilter
   }, "id">
 
   export type UserOrderByWithAggregationInput = {
     id?: SortOrder
     name?: SortOrder
+    role?: SortOrder
     _count?: UserCountOrderByAggregateInput
     _max?: UserMaxOrderByAggregateInput
     _min?: UserMinOrderByAggregateInput
@@ -3396,6 +3414,7 @@ export namespace Prisma {
     NOT?: UserScalarWhereWithAggregatesInput | UserScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"User"> | string
     name?: StringWithAggregatesFilter<"User"> | string
+    role?: EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
   }
 
   export type AdminRequestCreateInput = {
@@ -3477,40 +3496,47 @@ export namespace Prisma {
   export type UserCreateInput = {
     id: string
     name: string
+    role: $Enums.Role
     adminRequests?: AdminRequestCreateNestedManyWithoutRequesterInput
   }
 
   export type UserUncheckedCreateInput = {
     id: string
     name: string
+    role: $Enums.Role
     adminRequests?: AdminRequestUncheckedCreateNestedManyWithoutRequesterInput
   }
 
   export type UserUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     adminRequests?: AdminRequestUpdateManyWithoutRequesterNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     adminRequests?: AdminRequestUncheckedUpdateManyWithoutRequesterNestedInput
   }
 
   export type UserCreateManyInput = {
     id: string
     name: string
+    role: $Enums.Role
   }
 
   export type UserUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
   }
 
   export type UserUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -3694,16 +3720,19 @@ export namespace Prisma {
   export type UserCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    role?: SortOrder
   }
 
   export type UserMaxOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    role?: SortOrder
   }
 
   export type UserMinOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    role?: SortOrder
   }
 
   export type UserCreateNestedOneWithoutAdminRequestsInput = {
@@ -3928,11 +3957,13 @@ export namespace Prisma {
   export type UserCreateWithoutAdminRequestsInput = {
     id: string
     name: string
+    role: $Enums.Role
   }
 
   export type UserUncheckedCreateWithoutAdminRequestsInput = {
     id: string
     name: string
+    role: $Enums.Role
   }
 
   export type UserCreateOrConnectWithoutAdminRequestsInput = {
@@ -3954,11 +3985,13 @@ export namespace Prisma {
   export type UserUpdateWithoutAdminRequestsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
   }
 
   export type UserUncheckedUpdateWithoutAdminRequestsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
   }
 
   export type AdminRequestCreateWithoutRequesterInput = {
