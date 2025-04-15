@@ -1,4 +1,4 @@
-import { triggerNotification } from "../../../notification-service/src/utils/notifier.js";
+import { triggerNotification } from "./notifier.js";
 
 export const sendGatePassIssuedNotification = async (userId, gatePass) => {
     await triggerNotification({

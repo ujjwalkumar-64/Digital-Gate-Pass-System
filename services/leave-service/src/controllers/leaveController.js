@@ -168,7 +168,28 @@ export const rejectLeaveRequest = async (req, res) => {
   }
 };
 
- 
+
+export const getLeaveById = async (req, res) => {
+  const { leaveId } = req.params;
+
+  try {
+    const leave = await prisma.leave.findUnique({
+      where: { id:leaveId },
+       
+    });
+
+    if (!leave) {
+      return res.status(404).json({ message: 'Leave not found' });
+    }
+
+    return res.status(200).json(leave);
+  } catch (error) {
+    console.error('Error fetching leave:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
 
 // check
 export const getAllLeaveRequests = async (req, res) => {

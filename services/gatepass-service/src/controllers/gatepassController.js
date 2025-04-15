@@ -1,17 +1,19 @@
-import { PrismaClient } from '@prisma/client';
-import { sendGatePassIssuedNotification,sendGatePassUsedNotification , sendGatePassExpiredNotification} from '../utils/notificationUtils'; // Assuming notificationUtils sends notifications
-
+import { PrismaClient } from '../generated/prisma/index.js';
 const prisma = new PrismaClient();
+import axios from 'axios';
+import { sendGatePassIssuedNotification,sendGatePassUsedNotification , sendGatePassExpiredNotification} from '../utils/notificationUtils.js'; // Assuming notificationUtils sends notifications
+
+ 
 
 export const issueGatePass = async (req, res) => {
-  const { hostelAdminId } = req.user.id; 
-  const{leaveId}= req.params;
+  const hostelAdminId = req.user.id; 
+  const {leaveId}= req.params;
+  console.log(leaveId);
+
   try {
-    // Fetch the approved leave request with user details
-    const leaveRequest = await prisma.leave.findUnique({
-      where: { id: leaveId },
-      include: { user: true },
-    });
+   
+    const response =  await axios.get(`http://localhost:3002/api/leave/${leaveId}`);
+    const leaveRequest = response.data;
 
     if (!leaveRequest) {
       return res.status(404).json({ message: 'Leave request not found' });
@@ -45,8 +47,8 @@ export const issueGatePass = async (req, res) => {
       },
     });
 
-    // Notify user
-    await sendGatePassIssuedNotification(leaveRequest.userId, gatePass);
+    // // Notify user
+    // await sendGatePassIssuedNotification(leaveRequest.userId, gatePass);
 
     return res.status(201).json({ message: 'Gate pass issued successfully', gatePass });
   } catch (error) {
@@ -62,9 +64,9 @@ export const myGatePasses = async (req, res) => {
   try {
     const passes = await prisma.gatePass.findMany({
       where: {
-        leave: { userId: req.user.id }
+        userId: req.user.id 
       },
-      orderBy: { issuedAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
 
     res.json(passes);
@@ -76,12 +78,15 @@ export const myGatePasses = async (req, res) => {
 
 
 export const verifyGatePass = async (req, res) => {
-  const { gatePassId, status, verifierId } = req.body;
+  const { gatePassId} = req.params;
+  const { status } = req.body;
+  const verifierId = req.user.id;
+  console.log(verifierId)
+  // console.log(verifierId.id)
 
   try {
     const gatePass = await prisma.gatePass.findUnique({
       where: { id: gatePassId },
-      include: { user: true },
     });
 
     if (!gatePass) {
@@ -102,7 +107,8 @@ export const verifyGatePass = async (req, res) => {
         },
       });
 
-      await sendGatePassUsedNotification(gatePass.userId, gatePassId);
+      // notification
+      // await sendGatePassUsedNotification(gatePass.userId, gatePassId);
       return res.status(200).json({ message: 'Exit verified successfully', gatePass: updated });
     }
 
@@ -120,7 +126,8 @@ export const verifyGatePass = async (req, res) => {
         },
       });
 
-      await sendGatePassExpiredNotification(gatePass.userId, gatePassId);
+      // notification
+      // await sendGatePassExpiredNotification(gatePass.userId, gatePassId);
       return res.status(200).json({ message: 'Re-entry verified and gate pass expired', gatePass: updated });
     }
 
