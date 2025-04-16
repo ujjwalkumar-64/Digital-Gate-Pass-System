@@ -913,7 +913,8 @@ export namespace Prisma {
     id: string | null
     recipientId: string | null
     message: string | null
-    recipientType: string | null
+    type: string | null
+    email: string | null
     channel: $Enums.NotificationChannel | null
     status: $Enums.NotificationStatus | null
     read: boolean | null
@@ -925,7 +926,8 @@ export namespace Prisma {
     id: string | null
     recipientId: string | null
     message: string | null
-    recipientType: string | null
+    type: string | null
+    email: string | null
     channel: $Enums.NotificationChannel | null
     status: $Enums.NotificationStatus | null
     read: boolean | null
@@ -937,7 +939,9 @@ export namespace Prisma {
     id: number
     recipientId: number
     message: number
-    recipientType: number
+    type: number
+    meta: number
+    email: number
     channel: number
     status: number
     read: number
@@ -951,7 +955,8 @@ export namespace Prisma {
     id?: true
     recipientId?: true
     message?: true
-    recipientType?: true
+    type?: true
+    email?: true
     channel?: true
     status?: true
     read?: true
@@ -963,7 +968,8 @@ export namespace Prisma {
     id?: true
     recipientId?: true
     message?: true
-    recipientType?: true
+    type?: true
+    email?: true
     channel?: true
     status?: true
     read?: true
@@ -975,7 +981,9 @@ export namespace Prisma {
     id?: true
     recipientId?: true
     message?: true
-    recipientType?: true
+    type?: true
+    meta?: true
+    email?: true
     channel?: true
     status?: true
     read?: true
@@ -1060,7 +1068,9 @@ export namespace Prisma {
     id: string
     recipientId: string
     message: string
-    recipientType: string
+    type: string
+    meta: JsonValue | null
+    email: string
     channel: $Enums.NotificationChannel
     status: $Enums.NotificationStatus
     read: boolean
@@ -1089,7 +1099,9 @@ export namespace Prisma {
     id?: boolean
     recipientId?: boolean
     message?: boolean
-    recipientType?: boolean
+    type?: boolean
+    meta?: boolean
+    email?: boolean
     channel?: boolean
     status?: boolean
     read?: boolean
@@ -1101,7 +1113,9 @@ export namespace Prisma {
     id?: boolean
     recipientId?: boolean
     message?: boolean
-    recipientType?: boolean
+    type?: boolean
+    meta?: boolean
+    email?: boolean
     channel?: boolean
     status?: boolean
     read?: boolean
@@ -1113,7 +1127,9 @@ export namespace Prisma {
     id?: boolean
     recipientId?: boolean
     message?: boolean
-    recipientType?: boolean
+    type?: boolean
+    meta?: boolean
+    email?: boolean
     channel?: boolean
     status?: boolean
     read?: boolean
@@ -1125,7 +1141,9 @@ export namespace Prisma {
     id?: boolean
     recipientId?: boolean
     message?: boolean
-    recipientType?: boolean
+    type?: boolean
+    meta?: boolean
+    email?: boolean
     channel?: boolean
     status?: boolean
     read?: boolean
@@ -1133,7 +1151,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type NotificationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "recipientId" | "message" | "recipientType" | "channel" | "status" | "read" | "createdAt" | "updatedAt", ExtArgs["result"]["notification"]>
+  export type NotificationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "recipientId" | "message" | "type" | "meta" | "email" | "channel" | "status" | "read" | "createdAt" | "updatedAt", ExtArgs["result"]["notification"]>
 
   export type $NotificationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Notification"
@@ -1142,7 +1160,9 @@ export namespace Prisma {
       id: string
       recipientId: string
       message: string
-      recipientType: string
+      type: string
+      meta: Prisma.JsonValue | null
+      email: string
       channel: $Enums.NotificationChannel
       status: $Enums.NotificationStatus
       read: boolean
@@ -1574,7 +1594,9 @@ export namespace Prisma {
     readonly id: FieldRef<"Notification", 'String'>
     readonly recipientId: FieldRef<"Notification", 'String'>
     readonly message: FieldRef<"Notification", 'String'>
-    readonly recipientType: FieldRef<"Notification", 'String'>
+    readonly type: FieldRef<"Notification", 'String'>
+    readonly meta: FieldRef<"Notification", 'Json'>
+    readonly email: FieldRef<"Notification", 'String'>
     readonly channel: FieldRef<"Notification", 'NotificationChannel'>
     readonly status: FieldRef<"Notification", 'NotificationStatus'>
     readonly read: FieldRef<"Notification", 'Boolean'>
@@ -1964,7 +1986,9 @@ export namespace Prisma {
     id: 'id',
     recipientId: 'recipientId',
     message: 'message',
-    recipientType: 'recipientType',
+    type: 'type',
+    meta: 'meta',
+    email: 'email',
     channel: 'channel',
     status: 'status',
     read: 'read',
@@ -1983,12 +2007,37 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
   export const QueryMode: {
     default: 'default',
     insensitive: 'insensitive'
   };
 
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+  export const JsonNullValueFilter: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull,
+    AnyNull: typeof AnyNull
+  };
+
+  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -2007,6 +2056,20 @@ export namespace Prisma {
    * Reference to a field of type 'String[]'
    */
   export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'QueryMode'
+   */
+  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2083,7 +2146,9 @@ export namespace Prisma {
     id?: StringFilter<"Notification"> | string
     recipientId?: StringFilter<"Notification"> | string
     message?: StringFilter<"Notification"> | string
-    recipientType?: StringFilter<"Notification"> | string
+    type?: StringFilter<"Notification"> | string
+    meta?: JsonNullableFilter<"Notification">
+    email?: StringFilter<"Notification"> | string
     channel?: EnumNotificationChannelFilter<"Notification"> | $Enums.NotificationChannel
     status?: EnumNotificationStatusFilter<"Notification"> | $Enums.NotificationStatus
     read?: BoolFilter<"Notification"> | boolean
@@ -2095,7 +2160,9 @@ export namespace Prisma {
     id?: SortOrder
     recipientId?: SortOrder
     message?: SortOrder
-    recipientType?: SortOrder
+    type?: SortOrder
+    meta?: SortOrderInput | SortOrder
+    email?: SortOrder
     channel?: SortOrder
     status?: SortOrder
     read?: SortOrder
@@ -2110,7 +2177,9 @@ export namespace Prisma {
     NOT?: NotificationWhereInput | NotificationWhereInput[]
     recipientId?: StringFilter<"Notification"> | string
     message?: StringFilter<"Notification"> | string
-    recipientType?: StringFilter<"Notification"> | string
+    type?: StringFilter<"Notification"> | string
+    meta?: JsonNullableFilter<"Notification">
+    email?: StringFilter<"Notification"> | string
     channel?: EnumNotificationChannelFilter<"Notification"> | $Enums.NotificationChannel
     status?: EnumNotificationStatusFilter<"Notification"> | $Enums.NotificationStatus
     read?: BoolFilter<"Notification"> | boolean
@@ -2122,7 +2191,9 @@ export namespace Prisma {
     id?: SortOrder
     recipientId?: SortOrder
     message?: SortOrder
-    recipientType?: SortOrder
+    type?: SortOrder
+    meta?: SortOrderInput | SortOrder
+    email?: SortOrder
     channel?: SortOrder
     status?: SortOrder
     read?: SortOrder
@@ -2140,7 +2211,9 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Notification"> | string
     recipientId?: StringWithAggregatesFilter<"Notification"> | string
     message?: StringWithAggregatesFilter<"Notification"> | string
-    recipientType?: StringWithAggregatesFilter<"Notification"> | string
+    type?: StringWithAggregatesFilter<"Notification"> | string
+    meta?: JsonNullableWithAggregatesFilter<"Notification">
+    email?: StringWithAggregatesFilter<"Notification"> | string
     channel?: EnumNotificationChannelWithAggregatesFilter<"Notification"> | $Enums.NotificationChannel
     status?: EnumNotificationStatusWithAggregatesFilter<"Notification"> | $Enums.NotificationStatus
     read?: BoolWithAggregatesFilter<"Notification"> | boolean
@@ -2152,7 +2225,9 @@ export namespace Prisma {
     id?: string
     recipientId: string
     message: string
-    recipientType: string
+    type: string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email: string
     channel: $Enums.NotificationChannel
     status?: $Enums.NotificationStatus
     read?: boolean
@@ -2164,7 +2239,9 @@ export namespace Prisma {
     id?: string
     recipientId: string
     message: string
-    recipientType: string
+    type: string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email: string
     channel: $Enums.NotificationChannel
     status?: $Enums.NotificationStatus
     read?: boolean
@@ -2176,7 +2253,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientId?: StringFieldUpdateOperationsInput | string
     message?: StringFieldUpdateOperationsInput | string
-    recipientType?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email?: StringFieldUpdateOperationsInput | string
     channel?: EnumNotificationChannelFieldUpdateOperationsInput | $Enums.NotificationChannel
     status?: EnumNotificationStatusFieldUpdateOperationsInput | $Enums.NotificationStatus
     read?: BoolFieldUpdateOperationsInput | boolean
@@ -2188,7 +2267,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientId?: StringFieldUpdateOperationsInput | string
     message?: StringFieldUpdateOperationsInput | string
-    recipientType?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email?: StringFieldUpdateOperationsInput | string
     channel?: EnumNotificationChannelFieldUpdateOperationsInput | $Enums.NotificationChannel
     status?: EnumNotificationStatusFieldUpdateOperationsInput | $Enums.NotificationStatus
     read?: BoolFieldUpdateOperationsInput | boolean
@@ -2200,7 +2281,9 @@ export namespace Prisma {
     id?: string
     recipientId: string
     message: string
-    recipientType: string
+    type: string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email: string
     channel: $Enums.NotificationChannel
     status?: $Enums.NotificationStatus
     read?: boolean
@@ -2212,7 +2295,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientId?: StringFieldUpdateOperationsInput | string
     message?: StringFieldUpdateOperationsInput | string
-    recipientType?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email?: StringFieldUpdateOperationsInput | string
     channel?: EnumNotificationChannelFieldUpdateOperationsInput | $Enums.NotificationChannel
     status?: EnumNotificationStatusFieldUpdateOperationsInput | $Enums.NotificationStatus
     read?: BoolFieldUpdateOperationsInput | boolean
@@ -2224,7 +2309,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientId?: StringFieldUpdateOperationsInput | string
     message?: StringFieldUpdateOperationsInput | string
-    recipientType?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
+    email?: StringFieldUpdateOperationsInput | string
     channel?: EnumNotificationChannelFieldUpdateOperationsInput | $Enums.NotificationChannel
     status?: EnumNotificationStatusFieldUpdateOperationsInput | $Enums.NotificationStatus
     read?: BoolFieldUpdateOperationsInput | boolean
@@ -2245,6 +2332,29 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type EnumNotificationChannelFilter<$PrismaModel = never> = {
@@ -2277,11 +2387,18 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
   export type NotificationCountOrderByAggregateInput = {
     id?: SortOrder
     recipientId?: SortOrder
     message?: SortOrder
-    recipientType?: SortOrder
+    type?: SortOrder
+    meta?: SortOrder
+    email?: SortOrder
     channel?: SortOrder
     status?: SortOrder
     read?: SortOrder
@@ -2293,7 +2410,8 @@ export namespace Prisma {
     id?: SortOrder
     recipientId?: SortOrder
     message?: SortOrder
-    recipientType?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
     channel?: SortOrder
     status?: SortOrder
     read?: SortOrder
@@ -2305,7 +2423,8 @@ export namespace Prisma {
     id?: SortOrder
     recipientId?: SortOrder
     message?: SortOrder
-    recipientType?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
     channel?: SortOrder
     status?: SortOrder
     read?: SortOrder
@@ -2329,6 +2448,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type EnumNotificationChannelWithAggregatesFilter<$PrismaModel = never> = {
@@ -2463,6 +2608,40 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedEnumNotificationChannelWithAggregatesFilter<$PrismaModel = never> = {

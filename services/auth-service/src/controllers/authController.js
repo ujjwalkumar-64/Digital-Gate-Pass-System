@@ -1,6 +1,5 @@
 import { PrismaClient } from '../generated/prisma/index.js';
 const prisma = new PrismaClient();
-
 import axios from "axios"
 import bcrypt from 'bcrypt';
 import { signToken } from '../utils/jwt.js';
@@ -81,6 +80,18 @@ export const registerUser = async (req, res) => {
           department: role=== 'department_admin' ? normalizedDepartment: null,
           requesterName: newUser.name,
         })
+
+        // neewd to change and save in env
+
+        await axios.post('http://localhost:5004/api/notifications/send', {
+          type: 'account-approval',
+          channel: 'socket',
+          recipientId:"9817aedb-a022-4226-a845-febfa82b08ac",
+          email:"admin@gmail.com",
+          
+          message: `account approval request for ${role} by ${newUser.name}`,
+        });
+
       } catch (notifyError) {
         console.error('Admin request creation failed:', notifyError);
 
@@ -232,6 +243,7 @@ export const getAdminsByRole = async (req, res) => {
     if (!role) {
       return res.status(400).json({ message: 'Role is required' });
     }
+    const normalizedDepartment = department?.toUpperCase();
 
     const whereClause = {
       role,
@@ -239,7 +251,7 @@ export const getAdminsByRole = async (req, res) => {
     };
 
     if (department) {
-      whereClause.department = department;
+      whereClause.department = normalizedDepartment;
     }
 
     const admins = await prisma.user.findMany({
@@ -248,7 +260,7 @@ export const getAdminsByRole = async (req, res) => {
         id: true,
         email: true,
         name: true,
-        phoneNumber: true,
+        phone: true,
         department: true
       }
     });
@@ -269,25 +281,23 @@ export const getUserById = async (req, res) => {
       return res.status(400).json({ message: 'UserId is required' });
     }
 
-    const whereClause = {
-      id:userId,
-      isApproved: true
-    };
-
-
-    const users = await prisma.user.findMany({
-      where: whereClause,
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
       select: {
         id: true,
         email: true,
         name: true,
-         
+        isApproved:true
       }
     });
 
-    return res.json(users);
-  } catch (error) {
-    console.error('Get Admins Error:', error.message);
-    return res.status(500).json({ message: 'Internal server error' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found or not approved' });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error('Error fetching user:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };

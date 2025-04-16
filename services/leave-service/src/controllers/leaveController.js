@@ -1,7 +1,7 @@
 import { PrismaClient } from '../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
-
+import axios from "axios"
 import { sendLeaveRequestNotification , sendLeaveApprovalNotification, sendRejectionNotification} from '../utils/notificationUtils.js'; // Assuming notificationUtils sends notifications
 
 
@@ -42,7 +42,7 @@ export const createLeaveRequest = async (req, res) => {
     const targetRole = flowType === 'hostel_direct' ? 'hostel_admin' : 'department_admin';
     const queryParams = flowType === 'hostel_direct' ? '' : `&department=${department}`;
 
-    const { data: admins } = await axios.get(`http://localhost:5005/api/auth/admins?role=${targetRole}${queryParams}`);
+    const { data: admins } = await axios.get(`http://localhost:3000/api/auth/admins?role=${targetRole}${queryParams}`);
     
     if (!admins || admins.length === 0) {
       return res.status(404).json({ message: 'No admin found to notify' });
@@ -98,7 +98,7 @@ export const approveLeaveRequest = async (req, res) => {
         allow = true;
       }
     } else if (flowType === 'hostel_direct') {
-      if (currentStage === 'department' && user.role === 'hostel_admin') {
+      if (currentStage === 'hostel' && user.role === 'hostel_admin') {
         nextStage = 'done';
         allow = true;
       }
@@ -117,14 +117,18 @@ export const approveLeaveRequest = async (req, res) => {
       },
     });
 
+    if(nextStage == 'done'){
         // 1. ✅ Notify student (email + socket)
-        await sendLeaveApprovalNotification(leaveRequest.user, {
+        const response = await axios.get(`http://localhost:3000/api/auth/user?userId=${leaveRequest.userId}`);
+        const student = response.data;
+        await sendLeaveApprovalNotification(leaveRequest.userId, {
           approvedBy: user.name,
           currentStage: nextStage,
           status: nextStage === 'done' ? 'approved' : 'forwarded',
           leaveRequest,
+          email:student.email
         });
-
+      }
 
     if (nextStage !== 'done') {
       const nextRole = nextStage === 'academic' ? 'academic_admin' :
@@ -134,7 +138,7 @@ export const approveLeaveRequest = async (req, res) => {
         ? `role=${nextRole}`
         : `role=${nextRole}&department=${department}`;
 
-      const { data: nextAdmins } = await axios.get(`http://localhost:5000/api/users/admins?${queryParams}`);
+      const { data: nextAdmins } = await axios.get(`http://localhost:3000/api/auth/admins?${queryParams}`);
 
       for (const admin of nextAdmins) {
         await sendLeaveRequestNotification(admin, {
@@ -184,7 +188,7 @@ export const rejectLeaveRequest = async (req, res) => {
         allowRejection = true;
       }
     } else if (flowType === 'hostel_direct') {
-      if (currentStage === 'department' && req.user.role === 'hostel_admin') {
+      if (currentStage === 'hostel' && req.user.role === 'hostel_admin') {
         allowRejection = true;
         currentStage='hostel';
       }
@@ -204,11 +208,13 @@ export const rejectLeaveRequest = async (req, res) => {
       },
     });
 
-    const  data = await axios.get(`http://localhost:5000/api/users/admins?${userId}`);
+    const response = await axios.get(`http://localhost:3000/api/auth/user?userId=${userId}`);
+    const student = response.data;
+
     // Prepare rejection notification message
-    const message = `Hello ${data.name} your leave request for the period ${fromDate} to ${toDate} has been rejected.\n\n Reason: ${reason}`;
- 
-    await sendRejectionNotification(data, message);
+    const message = `Hello ${student.name} your leave request for the period ${fromDate} to ${toDate} has been rejected.\n\n Reason: ${reason}`;
+    console.log(message)
+    await sendRejectionNotification(student, message);
  
     res.status(200).json({ success: 'Leave request rejected successfully' });
   } catch (error) {

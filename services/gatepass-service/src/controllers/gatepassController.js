@@ -47,8 +47,8 @@ export const issueGatePass = async (req, res) => {
       },
     });
 
-    // // Notify user
-    // await sendGatePassIssuedNotification(leaveRequest.userId, gatePass);
+    // Notify user
+    await sendGatePassIssuedNotification(leaveRequest.userId, gatePass);
 
     return res.status(201).json({ message: 'Gate pass issued successfully', gatePass });
   } catch (error) {

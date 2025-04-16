@@ -1,36 +1,4 @@
 
-// export const createNotification = async (req, res) => {
-//   const { userId } = req.params;
-//   const { message } = req.body;
-
-//   try {
-//     const notification = await prisma.notification.create({
-//       data: { userId, message },
-//     });
-
-//     // get user email and phone from db
-//     const user = await prisma.user.findUnique({ where: { id: userId } });
-
-//     // Send Email
-//     if (user?.email) {
-//       await sendEmail(user.email, 'New Notification', message);
-//     }
-
-//     // Send SMS if available
-//     if (user?.phone) {
-//       await sendSMS(user.phone, message);
-//     }
-
-//     // Redis pub for websocket
-//     await redis.publish('notifications', JSON.stringify({ userId, message }));
-
-//     res.json(notification);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
 // // Get my notifications
 // export const getMyNotifications = async (req, res) => {
 //   try {
@@ -147,7 +115,7 @@ import  { redis } from '../utils/redisClient.js';
 import  { sendEmail } from '../services/emailService.js';
 
 export const sendNotification = async (req, res) => {
-  const { recipientId,email, channel, message, type } = req.body;
+  const { recipientId,email, channel, message, type,meta } = req.body;
 
  
     const notification = await prisma.notification.create({
@@ -157,8 +125,9 @@ export const sendNotification = async (req, res) => {
         message,
         email,
         type,
+        meta: meta || null,
         status: 'pending',  
-        timestamp: new Date(),
+        
       },
     });
 
@@ -192,3 +161,54 @@ export const sendNotification = async (req, res) => {
     }
 };
 
+export const getNotificationsByUser = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { recipientId: userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json({ notifications });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ message: 'Failed to load notifications' });
+  }
+};
+
+// controllers/getNotifications.js
+export const getNotifications = async (req, res) => {
+  const { userId, type, skip = 0, limit = 10 } = req.query;
+
+  try {
+    const filters = { recipientId: userId };
+    if (type) filters.type = type;
+
+    const notifications = await prisma.notification.findMany({
+      where: filters,
+      orderBy: { createdAt: 'desc' },
+      skip: parseInt(skip),
+      take: parseInt(limit),
+    });
+
+    return res.status(200).json(notifications);
+  } catch (err) {
+    console.error('Failed to fetch notifications', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const markAsRead = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const updated = await prisma.notification.update({
+      where: { id },
+      data: { read: true },
+    });
+    return res.status(200).json(updated);
+  } catch (err) {
+    console.error('Mark as read failed', err);
+    res.status(500).json({ message: 'Failed to mark as read' });
+  }
+};

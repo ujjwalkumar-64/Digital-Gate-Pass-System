@@ -2,12 +2,13 @@ import nodemailer from 'nodemailer';
 
 // Setup the transporter using your SMTP service
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Use your email provider here
+  service: 'gmail', 
   auth: {
     user: process.env.EMAIL_USER, // Your email (Gmail in this case)
     pass: process.env.EMAIL_PASS  // App password or normal password
   }
 });
+
 
 // Function to send email
 const sendEmail = async (recipientEmail, subject, message) => {

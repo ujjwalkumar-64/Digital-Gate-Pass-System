@@ -18,7 +18,9 @@ model Notification {
   id              String               @id @default(uuid())
   recipientId     String
   message         String
-  recipientType   String
+  type            String
+  meta            Json?                //optional
+  email           String
   channel         NotificationChannel
   status          NotificationStatus   @default(pending)
   read            Boolean              @default(false)

@@ -121,7 +121,9 @@ exports.Prisma.NotificationScalarFieldEnum = {
   id: 'id',
   recipientId: 'recipientId',
   message: 'message',
-  recipientType: 'recipientType',
+  type: 'type',
+  meta: 'meta',
+  email: 'email',
   channel: 'channel',
   status: 'status',
   read: 'read',
@@ -134,9 +136,25 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
 };
 exports.NotificationChannel = exports.$Enums.NotificationChannel = {
   email: 'email',

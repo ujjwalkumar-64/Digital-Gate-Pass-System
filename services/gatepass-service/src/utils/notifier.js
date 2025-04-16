@@ -6,6 +6,8 @@ export const triggerNotification = async ({ recipientId, message, type, meta }) 
       recipientId,
       message,
       type,
+      email,
+      channel,
       meta
     });
   } catch (error) {

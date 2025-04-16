@@ -1,45 +1,49 @@
-import { Server } from 'socket.io';
-import { redis, connectToRedis } from '../utils/redisClient.js'; // Corrected import
+
+import { redis, connectToRedis } from '../utils/redisClient.js';
 
 connectToRedis();
 
-// Initialize the Socket.IO server
-const initSocketServer = (server) => {
-  const io = new Server(server); // Correct initialization
-
+const initSocketServer = (io) => {
   io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    console.log('✅ A user connected:', socket.id);
 
-    // When a user joins, map their socket ID to their userId (stored in Redis)
-    socket.on('join', (userId) => {
-      redis.set(userId, socket.id);
-      console.log(`User ${userId} connected with socket ID: ${socket.id}`);
+    socket.on('join', async (userId) => {
+      console.log('Join event received from:', socket.id, 'for userId:', userId);
+      const key = `socket:${userId}`;
+      await redis.set(key, socket.id, 'EX',300); 
+      console.log(`✅ User ${userId} joined with socket ID ${socket.id}`);    
     });
-
-    // Listen for disconnects and clean up Redis mappings
-    socket.on('disconnect', () => {
-      redis.get(socket.id, (err, userId) => {
-        if (userId) {
-          redis.del(userId);
-          console.log(`User ${userId} disconnected and socket ID removed from Redis.`);
+    
+    socket.on('disconnect', async () => {
+      try {
+        const keys = await redis.keys('*');
+        for (const key of keys) {
+          const value = await redis.get(key);
+          if (value === socket.id) {
+            await redis.del(key);
+            console.log(`Redis cleanup: ${key} disconnected`);
+          }
         }
-      });
+      } catch (err) {
+        console.error('Redis cleanup error:', err);
+      }
     });
   });
-
-  return io;
 };
 
-// Emit a notification to a specific user via their socketId
-const sendNotificationToUser = (userId, notificationData, io) => {
-  redis.get(userId, (err, socketId) => {
+const sendNotificationToUser = async (userId, notificationData, io) => {
+  try {
+    const socketId = await redis.get(userId);
+    console.log('🔎 Redis lookup for user:', userId, '=>', socketId);
     if (socketId) {
-      io.to(socketId).emit('notification', notificationData); // Emit message to user
-      console.log(`Notification sent to user ${userId}`);
+      io.to(socketId).emit('notification', notificationData);
+      console.log(`✅ Notification sent to ${userId}`);
     } else {
-      console.log(`User ${userId} not connected.`);
+      console.log(`⚠️ User ${userId} not connected`);
     }
-  });
+  } catch (err) {
+    console.error('Notification send error:', err);
+  }
 };
 
 export { initSocketServer, sendNotificationToUser };

@@ -2,26 +2,26 @@ import axios from 'axios';
 import { PrismaClient } from '../generated/prisma/index.js';
 const prisma = new PrismaClient();
 
-// Notification Service URL (You can replace this with your Notification Service endpoint)
-const notificationServiceUrl = 'http://localhost:5004/api/notifications/send';
 
 
-
-export const sendRejectionNotification = async(data,message)=>{
+export const sendRejectionNotification = async(student,message)=>{
   try {
     await axios.post('http://localhost:5004/api/notifications/send', {
       type: 'leave-rejection',
       channel: 'email',
-      recipientId: data.id,
-      email:data.email,
+      recipientId: student.id,
+      email:student.email,
       message,
+      meta:student
     });
 
     await axios.post('http://localhost:5004/api/notifications/send', {
       type: 'leave-rejection',
       channel: 'socket',
-      recipientId: data.id,
+      recipientId: student.id,
+      email:student.email,
       message,
+      meta:student
     });
   } catch (error) {
     console.error('Error sending leave request rejection notification:', error);
@@ -37,6 +37,7 @@ export const sendLeaveRequestNotification = async (admin, payload) => {
      channel: 'email',
      recipientId: admin.id,
      email:admin.email,
+     meta:payload,
      message: `New leave request from ${payload.name} (${payload.department})`,
    });
  
@@ -45,6 +46,7 @@ export const sendLeaveRequestNotification = async (admin, payload) => {
      channel: 'socket',
      recipientId: admin.id,
      email:admin.email,
+     meta:payload,
      message: `Leave request submitted by ${payload.name}`,
    });
   } catch (error) {
@@ -52,19 +54,23 @@ export const sendLeaveRequestNotification = async (admin, payload) => {
   }
 };
 
-export const sendLeaveApprovalNotification = async (student, payload) => {
+export const sendLeaveApprovalNotification = async (studentId, payload) => {
   try {
     await axios.post('http://localhost:5004/api/notifications/send', {
       type: 'leave-approval',
       channel: 'email',
-      recipientId: student.id,
+      recipientId: studentId,
+      email:payload.email,
+      meta:payload,
       message: `Your leave has been ${payload.status} by ${payload.approvedBy}`,
     });
   
     await axios.post('http://localhost:5004/api/notifications/send', {
       type: 'leave-approval',
       channel: 'socket',
-      recipientId: student.id,
+      recipientId: studentId,
+      meta:payload,
+      email:payload.email,
       message: `Leave ${payload.status} at ${payload.currentStage} stage.`,
     });
   } catch (error) {
