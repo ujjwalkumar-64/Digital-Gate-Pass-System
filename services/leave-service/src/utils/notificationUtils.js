@@ -1,8 +1,4 @@
 import axios from 'axios';
-import { PrismaClient } from '../generated/prisma/index.js';
-const prisma = new PrismaClient();
-
-
 
 export const sendRejectionNotification = async(student,message)=>{
   try {

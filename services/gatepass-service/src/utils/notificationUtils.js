@@ -1,34 +1,55 @@
 import { triggerNotification } from "./notifier.js";
+import logger from '../utils/logger.js'; // Import the logger utility
 
-export const sendGatePassIssuedNotification = async (userId, gatePass) => {
+export const sendGatePassIssuedNotification = async (student, gatePass) => {
+  try {
     await triggerNotification({
-      recipientId: userId,
-      type: 'gatepass_created',
-      message: `Your gate pass has been created. It is valid until ${new Date(gatePass.validUntil).toLocaleString()}.`,
+      recipientId: student.id,
+      type: 'gatepass_issued',
+      channel: 'email',
+      message: `${student.name} your gate pass has been created. It is valid until ${new Date(gatePass.validUntil).toLocaleString()}.`,
       meta: {
         gatePassId: gatePass.id,
         leaveId: gatePass.leaveId,
-        validUntil: gatePass.validUntil
+        validUntil: gatePass.toDate
       },
-      email
+      email: student.email,
     });
-  };
-  
-  export const sendGatePassUsedNotification = async (userId, gatePassId) => {
+    logger.info(`✅ Gate pass issued notification sent to student ID: ${student.id}, gate pass ID: ${gatePass.id}`); // Log success
+  } catch (error) {
+    logger.error(`❌ Failed to send gate pass issued notification to student ID: ${student.id}, gate pass ID: ${gatePass.id}`, error); // Log error
+  }
+};
+
+export const sendGatePassUsedNotification = async (student, gatePassId) => {
+  try {
     await triggerNotification({
-      recipientId: userId,
+      recipientId: student.id,
       type: 'gatepass_used',
-      message: `Your gate pass (${gatePassId}) has been marked as used at ${new Date().toLocaleString()}.`,
-      meta: { gatePassId }
+      channel: 'email',
+      message: `${student.name} your gate pass (${gatePassId}) has been marked as used at ${new Date().toLocaleString()}.`,
+      meta: { gatePassId },
+      email: student.email,
     });
-  };
-  
-  export const sendGatePassExpiredNotification = async (userId, gatePassId) => {
+    logger.info(`✅ Gate pass used notification sent to student ID: ${student.id}, gate pass ID: ${gatePassId}`); // Log success
+  } catch (error) {
+    logger.error(`❌ Failed to send gate pass used notification to student ID: ${student.id}, gate pass ID: ${gatePassId}`, error); // Log error
+  }
+};
+
+export const sendGatePassExpiredNotification = async (student, gatePassId) => {
+  try {
     await triggerNotification({
-      recipientId: userId,
+      recipientId: student.id,
       type: 'gatepass_expired',
-      message: `Your gate pass (${gatePassId}) has expired. Please contact hostel or department.`,
-      meta: { gatePassId }
+      channel: 'email',
+      message: `${student.name} your gate pass (${gatePassId}) has expired. Please contact hostel or department.`,
+      meta: { gatePassId },
+      email: student.email,
     });
-  };
-  
+    logger.info(`✅ Gate pass expired notification sent to student ID: ${student.id}, gate pass ID: ${gatePassId}`); // Log success
+  } catch (error) {
+    logger.error(`❌ Failed to send gate pass expired notification to student ID: ${student.id}, gate pass ID: ${gatePassId}`, error); // Log error
+  }
+};
+

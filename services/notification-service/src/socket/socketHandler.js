@@ -1,19 +1,23 @@
-
 import { redis, connectToRedis } from '../utils/redisClient.js';
+import logger from '../utils/logger.js'; // Import the logger utility
 
 connectToRedis();
 
 const initSocketServer = (io) => {
   io.on('connection', (socket) => {
-    console.log('✅ A user connected:', socket.id);
+    logger.info(`✅ A user connected: ${socket.id}`); // Log user connection
 
     socket.on('join', async (userId) => {
-      console.log('Join event received from:', socket.id, 'for userId:', userId);
+      logger.info(`Join event received from socket ID: ${socket.id} for userId: ${userId}`);
       const key = `socket:${userId}`;
-      await redis.set(key, socket.id, 'EX',300); 
-      console.log(`✅ User ${userId} joined with socket ID ${socket.id}`);    
+      try {
+        await redis.set(key, socket.id, 'EX', 300); // Set Redis key with expiration
+        logger.info(`✅ User ${userId} joined with socket ID ${socket.id}`);
+      } catch (err) {
+        logger.error(`❌ Error setting Redis key for user ${userId}:`, err);
+      }
     });
-    
+
     socket.on('disconnect', async () => {
       try {
         const keys = await redis.keys('*');
@@ -21,11 +25,11 @@ const initSocketServer = (io) => {
           const value = await redis.get(key);
           if (value === socket.id) {
             await redis.del(key);
-            console.log(`Redis cleanup: ${key} disconnected`);
+            logger.info(`Redis cleanup: ${key} disconnected`);
           }
         }
       } catch (err) {
-        console.error('Redis cleanup error:', err);
+        logger.error('❌ Redis cleanup error:', err);
       }
     });
   });
@@ -33,16 +37,16 @@ const initSocketServer = (io) => {
 
 const sendNotificationToUser = async (userId, notificationData, io) => {
   try {
-    const socketId = await redis.get(userId);
-    console.log('🔎 Redis lookup for user:', userId, '=>', socketId);
+    const socketId = await redis.get(`socket:${userId}`);
+    logger.info(`🔎 Redis lookup for user ${userId} => ${socketId}`);
     if (socketId) {
       io.to(socketId).emit('notification', notificationData);
-      console.log(`✅ Notification sent to ${userId}`);
+      logger.info(`✅ Notification sent to user ${userId}`);
     } else {
-      console.log(`⚠️ User ${userId} not connected`);
+      logger.warn(`⚠️ User ${userId} not connected`);
     }
   } catch (err) {
-    console.error('Notification send error:', err);
+    logger.error('❌ Notification send error:', err);
   }
 };
 

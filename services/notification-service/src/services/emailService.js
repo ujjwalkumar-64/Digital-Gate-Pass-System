@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import logger from '../utils/logger.js'; // Import the logger utility
 
 // Setup the transporter using your SMTP service
 const transporter = nodemailer.createTransport({
@@ -8,7 +9,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS  // App password or normal password
   }
 });
-
 
 // Function to send email
 const sendEmail = async (recipientEmail, subject, message) => {
@@ -22,14 +22,14 @@ const sendEmail = async (recipientEmail, subject, message) => {
 
   return transporter.sendMail(mailOptions)
     .then(info => {
-      console.log('Email sent: ' + info.response);
+      logger.info(`✅ Email sent to ${recipientEmail}: ${info.response}`); // Log successful email sending
       return { status: 'sent', info };
     })
     .catch(error => {
-      console.log('Error in sending email:', error);
+      logger.error(`❌ Error in sending email to ${recipientEmail}:`, error); // Log email sending failure
       return { status: 'failed', error };
     });
 };
 
-export  { sendEmail };
+export { sendEmail };
 

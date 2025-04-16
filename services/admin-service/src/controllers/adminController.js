@@ -1,24 +1,26 @@
 import { PrismaClient } from '../generated/prisma/index.js';
+import axios from "axios";
+import { getServiceStats } from '../utils/fetchStats.js';
+import logger from '../utils/logger.js';  
 
 const prisma = new PrismaClient();
-import axios from "axios"
-import { getServiceStats } from '../utils/fetchStats.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
     const stats = await getServiceStats();
-   return res.json(stats);
+    logger.info('Dashboard stats fetched successfully');
+    return res.json(stats);
   } catch (err) {
+    logger.error('Failed to fetch dashboard stats:', err);
     return res.status(500).json({ error: 'Failed to fetch stats' });
   }
 };
-
-// GET /api/admin/check-approval?email=someone@example.com&role=hostel_admin
 
 export const checkAdminApproval = async (req, res) => {
   const { email, role } = req.query;
 
   if (!email || !role) {
+    logger.warn('Email and role are required for admin approval check');
     return res.status(400).json({ message: "Email and role are required." });
   }
 
@@ -32,14 +34,13 @@ export const checkAdminApproval = async (req, res) => {
     });
 
     const isApproved = !!request;
-
+    logger.info(`Admin approval check for email: ${email}, role: ${role}, result: ${isApproved}`);
     return res.status(200).json({ isApproved });
   } catch (error) {
-    console.error("Error checking approval:", error);
+    logger.error('Error checking admin approval:', error);
     return res.status(500).json({ message: "Server error." });
   }
 };
-
 
 export const listPendingAdminRequests = async (req, res) => {
   try {
@@ -49,86 +50,84 @@ export const listPendingAdminRequests = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    logger.info('Fetched pending admin requests');
     return res.status(200).json({ requests });
   } catch (error) {
-    console.error('Error fetching admin requests:', error);
+    logger.error('Error fetching admin requests:', error);
     return res.status(500).json({ message: 'Error fetching admin requests' });
   }
 };
 
-
 export const approveAdminRequest = async (req, res) => {
   const { adminRequestId } = req.params;
   if (!adminRequestId) {
+    logger.warn('Admin request ID is required for approval');
     return res.status(400).json({ message: 'Admin request ID is required.' });
   }
 
   try {
-    // Find the admin request
     const adminRequest = await prisma.adminRequest.findUnique({
       where: { id: adminRequestId },
     });
 
     if (!adminRequest) {
+      logger.warn(`Admin request not found for ID: ${adminRequestId}`);
       return res.status(404).json({ message: 'Admin request not found.' });
     }
 
-    // Make an API call to the auth-service to approve the user
     const response = await axios.patch('http://localhost:3000/api/auth/update-approval', {
-      userId: adminRequest.requesterId, 
+      userId: adminRequest.requesterId,
       isApproved: true,
     });
 
     if (response.status === 200) {
-      // Update the admin request status
       await prisma.adminRequest.update({
         where: { id: adminRequestId },
         data: { status: 'approved' },
       });
 
-      // await axios.post('http://notification-service:3005/api/notify', {
-      //   recipients: [adminRequest.requesterId],
-      //   type: 'admin_approval',
-      //   title: 'Admin Request Approved',
-      //   message: `Your request for ${adminRequest.role} access has been approved.`,
-      // });
+      await axios.post('http://notification-service:3005/api/notify', {
+        recipients: [adminRequest.requesterId],
+        type: 'admin_approval',
+        title: 'Admin Request Approved',
+        message: `Your request for ${adminRequest.role} access has been approved.`,
+      });
 
+      logger.info(`Admin request approved successfully for ID: ${adminRequestId}`);
       return res.status(200).json({ message: 'Admin request approved successfully.' });
     }
 
+    logger.error(`Failed to approve user in auth-service for request ID: ${adminRequestId}`);
     return res.status(500).json({ message: 'Failed to approve user in auth-service.' });
 
   } catch (error) {
-    console.error('Error approving admin request:', error);
+    logger.error('Error approving admin request:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-
-// need to review and change
 export const createAdminRequest = async (req, res) => {
   try {
     const { requesterId, targetEmail, role, department, requesterName } = req.body;
 
     if (!requesterId || !targetEmail || !role) {
+      logger.warn('Missing required fields for creating admin request');
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // 1. Check if the requester already exists in the local User table
     let existingUser = await prisma.user.findUnique({ where: { id: requesterId } });
 
     if (!existingUser) {
-      // 2. Create minimal user (just enough for foreign key)
       existingUser = await prisma.user.create({
         data: {
           id: requesterId,
           name: requesterName,
-          role
-        }
+          role,
+        },
       });
+      logger.info(`Created new user with ID: ${requesterId}`);
     }
 
-    // 3. Create the admin request
     const newRequest = await prisma.adminRequest.create({
       data: {
         requesterId,
@@ -138,19 +137,19 @@ export const createAdminRequest = async (req, res) => {
       },
     });
 
-    // // Notify Superadmin(s)
-    // await axios.post('http://notification-service:3005/api/notify', {
-    //   recipients: ['superadmin'],
-    //   type: 'admin_approval_request',
-    //   title: 'New Admin Request',
-    //   message: `${requesterName} has requested ${role} access.`,
-    //   metadata: {
-    //     requestId: newRequest.id,
-    //     requesterId,
-    //     role,
-    //     department,
-    //   },
-    // });
+    logger.info(`Admin request created successfully for requester ID: ${requesterId}`);
+    await axios.post('http://notification-service:3005/api/notify', {
+      recipients: ['superadmin'],
+      type: 'admin_approval_request',
+      title: 'New Admin Request',
+      message: `${requesterName} has requested ${role} access.`,
+      metadata: {
+        requestId: newRequest.id,
+        requesterId,
+        role,
+        department,
+      },
+    });
 
     return res.status(201).json({
       message: 'Admin request submitted and notification sent.',
@@ -158,7 +157,7 @@ export const createAdminRequest = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating admin request:', error);
+    logger.error('Error creating admin request:', error);
     return res.status(500).json({ message: 'Error creating admin request', error: error.message });
   }
 };
