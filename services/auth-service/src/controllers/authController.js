@@ -4,6 +4,7 @@ import axios from "axios";
 import bcrypt from 'bcrypt';
 import { signToken } from '../utils/jwt.js';
 import logger from '../utils/logger.js'; // Import logger
+import jwt from "jsonwebtoken"
 
 export const registerUser = async (req, res) => {
   const allowedDepartments = ['CSE', 'CHEMICAL', 'PETROLEUM', 'MNC'];
@@ -129,6 +130,9 @@ export const registerUser = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         department: newUser.department ?? null,
+        rollNumber: role === 'student' ? rollNumber : null,
+        roomNumber: role === 'student' ? roomNumber : null,
+        phone,
         isApproved: newUser.isApproved
       },
       token
@@ -141,7 +145,8 @@ export const registerUser = async (req, res) => {
 };
 
 // Check if admin is approved
-const isAdminApproved = async (email, role) => {
+
+export const isAdminApproved = async (email, role) => {
   try {
     const { data } = await axios.get(`http://localhost:5005/api/admin/check-approval`, {
       params: { email, role }
@@ -155,13 +160,15 @@ const isAdminApproved = async (email, role) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email, role },
+    });
 
     if (!user) {
-      logger.warn(`Login failed: User not found with email: ${email}`);
+      logger.warn(`Login failed: User not found or role mismatch. Email: ${email}, Role: ${role}`);
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
@@ -171,8 +178,8 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // If admin role (excluding student and super_admin), check approval
     const isAdmin = user.role !== "student" && user.role !== "super_admin";
-
     if (isAdmin) {
       const approved = await isAdminApproved(user.email, user.role);
       if (!approved) {
@@ -183,6 +190,7 @@ export const login = async (req, res) => {
       }
     }
 
+    // Sign JWT token
     const token = signToken({
       id: user.id,
       name: user.name,
@@ -190,10 +198,10 @@ export const login = async (req, res) => {
       email: user.email,
       phone: user.phone,
       department: user.department ?? null,
-      isApproved: user.isApproved
+      isApproved: user.isApproved,
     });
 
-    res.setHeader('Authorization', `Bearer ${token}`);
+    res.setHeader("Authorization", `Bearer ${token}`);
 
     logger.info(`Login successful for user ID: ${user.id}`);
     return res.status(200).json({
@@ -205,8 +213,9 @@ export const login = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        rollNumber: user.role==="student"?user.rollNumber:null,
         department: user.department,
-        roomNumber: user.roomNumber,
+        roomNumber: user.role==="student"?user.roomNumber:null,
       },
     });
   } catch (err) {
@@ -275,6 +284,26 @@ export const getAdminsByRole = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+export const getCurrentUser = async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    logger.warn('Access denied: No token provided');
+    return res.status(401).json({ message: "Access Denied" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    logger.info(`Token verified successfully for user ID: ${decoded.id}, role: ${decoded.role}`);
+    
+    return res.status(200).json({ user: decoded }); // ✅ directly send decoded
+  } catch (err) {
+    logger.error('Invalid token:', err);
+    return res.status(401).json({ message: "Invalid Token" });
+  }
+};
+
 
 export const getUserById = async (req, res) => {
   try {

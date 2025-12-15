@@ -1,16 +1,19 @@
 version: '3.9'
 
-services:
-  # gateway:
-  #   build: ./gateway
-  #   ports:
-  #     - '8000:8000'
-  #   depends_on:
-  #     - auth-service
-  #     - leave-service
-  #     - gatepass-service
-  #   environment:
-  #     NODE_ENV: development
+services: 
+  admin-db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_pass
+      POSTGRES_DB: admin_db
+    volumes:
+      - admin-db-data:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    networks:
+      - digital-gate-pass-network
 
   auth-db:
     image: postgres:15
@@ -23,16 +26,9 @@ services:
       - auth-db-data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    networks:
+      - digital-gate-pass-network
 
-  auth-service:
-    build: ./services/auth-service
-    ports:
-      - '3001:3000'
-    environment:
-      DATABASE_URL: postgresql://auth_user:auth_pass@auth-db:5432/auth_db
-      JWT_SECRET: DStTeNYdme8mUpVZ8SOcLn1Mz4Qf!gHJc69PjGxU8BYbCFwuDU
-    depends_on:
-      - auth-db
 
   leave-db:
     image: postgres:15
@@ -45,64 +41,48 @@ services:
       - leave-db-data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
+    networks:
+      - digital-gate-pass-network
 
-  leave-service:
-    build: ./services/leave-service
-    ports:
-      - '3002:3000'
+
+  gatepass-db:
+    image: postgres:15
+    restart: always
     environment:
-      DATABASE_URL: postgresql://leave_user:leave_pass@leave-db:5432/leave_db
-      JWT_SECRET: NaMA8yZZyCgvp46wOjQW%XJNHyuROSo35wZSN0lMlJKabI^$GD
-    depends_on:
-      - leave-db
+      POSTGRES_USER: gatepass_user
+      POSTGRES_PASSWORD: gatepass_pass
+      POSTGRES_DB: gatepass_db
+    volumes:
+      - gatepass-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - digital-gate-pass-network
 
-  # gatepass-db:
-  #   image: postgres:15
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: gate_user
-  #     POSTGRES_PASSWORD: gate_pass
-  #     POSTGRES_DB: gate_db
-  #   volumes:
-  #     - gatepass-db-data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5435:5432"
+  notification-db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notification_pass
+      POSTGRES_DB: notification_db
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"  
+    networks:
+      - digital-gate-pass-network
 
-  # gatepass-service:
-  #   build: ./services/gatepass-service
-  #   ports:
-  #     - '3003:3000'
-  #   environment:
-  #     DATABASE_URL: postgresql://gate_user:gate_pass@gatepass-db:5432/gate_db
-  #   depends_on:
-  #     - gatepass-db
+  redis:
+    image: redis:7
+    restart: always
+    volumes: 
+      - redis-data:/data
+    ports:
+      - "6379:6379" 
+    networks:
+      - digital-gate-pass-network  
 
-  # redis:
-  #   image: redis:alpine
-  #   ports:
-  #     - '6379:6379'
-
-  # kafka:
-  #   image: bitnami/kafka:latest
-  #   ports:
-  #     - '9092:9092'
-  #   environment:
-  #     KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-  #     KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-  #     KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9092
-  #     ALLOW_PLAINTEXT_LISTENER: "yes"
-  #   depends_on:
-  #     - zookeeper
-
-  # zookeeper:
-  #   image: bitnami/zookeeper:latest
-  #   ports:
-  #     - '2181:2181'
-  #   environment:
-  #     ALLOW_ANONYMOUS_LOGIN: "yes"
-
-    # Adding pgAdmin service
- 
   pgadmin:
     image: dpage/pgadmin4
     restart: always
@@ -113,9 +93,21 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - digital-gate-pass-network
+
+
+networks:
+  digital-gate-pass-network:
+    driver: bridge
+
+
 
 volumes:
   auth-db-data:
   leave-db-data:
   pgadmin-data:
-  # gatepass-db-data:
+  gatepass-db-data:
+  notification-db-data:
+  admin-db-data:
+  redis-data:

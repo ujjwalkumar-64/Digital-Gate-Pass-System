@@ -181,7 +181,7 @@ const config = {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "postgresql://postgres:Rgipt@3064@localhost:5432/admin_db"
+        "value": "postgresql://admin_user:admin_pass@localhost:5437/admin_db"
       }
     }
   },

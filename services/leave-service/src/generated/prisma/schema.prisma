@@ -9,17 +9,19 @@ datasource db {
 }
 
 model Leave {
-  id           String      @id @default(uuid())
-  reason       String
-  fromDate     DateTime
-  toDate       DateTime
-  status       LeaveStatus @default(pending)
-  userId       String
-  department   String
-  currentStage String
-  flowType     FlowType    @default(standard)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id               String      @id @default(uuid())
+  reason           String
+  fromDate         DateTime
+  toDate           DateTime
+  emergencyContact String
+  destination      String
+  status           LeaveStatus @default(pending)
+  userId           String
+  department       String
+  currentStage     String
+  flowType         FlowType    @default(standard)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 }
 
 enum LeaveStatus {
@@ -27,6 +29,7 @@ enum LeaveStatus {
   forwarded
   approved
   rejected
+  cancelled
 }
 
 enum FlowType {

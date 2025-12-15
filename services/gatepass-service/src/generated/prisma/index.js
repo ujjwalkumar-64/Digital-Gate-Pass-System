@@ -181,7 +181,7 @@ const config = {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "postgresql://postgres:Rgipt@3064@localhost:5432/gate_db"
+        "value": "postgresql://gatepass_user:gatepass_pass@localhost:5435/gatepass_db"
       }
     }
   },

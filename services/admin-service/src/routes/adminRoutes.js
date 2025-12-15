@@ -5,7 +5,7 @@ import { authenticateToken, authorizeSuperAdmin } from '../middlewares/authMiddl
 const router = express.Router();
 
 router.get('/dashboard', authenticateToken,authorizeSuperAdmin, getDashboardStats);
-router.put('/admin-request/:adminRequestId',authenticateToken,authorizeSuperAdmin, approveAdminRequest);
+router.put('/admin-request/:adminRequestId/:status',authenticateToken,authorizeSuperAdmin, approveAdminRequest);
 router.get('/admin-requests/pending',authenticateToken,authorizeSuperAdmin, listPendingAdminRequests);
 router.post('/admin-request', createAdminRequest);
 

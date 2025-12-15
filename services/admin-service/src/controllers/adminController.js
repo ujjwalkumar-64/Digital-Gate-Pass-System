@@ -59,7 +59,7 @@ export const listPendingAdminRequests = async (req, res) => {
 };
 
 export const approveAdminRequest = async (req, res) => {
-  const { adminRequestId } = req.params;
+  const { adminRequestId,status } = req.params;
   if (!adminRequestId) {
     logger.warn('Admin request ID is required for approval');
     return res.status(400).json({ message: 'Admin request ID is required.' });
@@ -75,26 +75,74 @@ export const approveAdminRequest = async (req, res) => {
       return res.status(404).json({ message: 'Admin request not found.' });
     }
 
-    const response = await axios.patch('http://localhost:3000/api/auth/update-approval', {
-      userId: adminRequest.requesterId,
-      isApproved: true,
-    });
+    
 
-    if (response.status === 200) {
-      await prisma.adminRequest.update({
-        where: { id: adminRequestId },
-        data: { status: 'approved' },
-      });
+    switch (status) {
+      case 'approved':
+          const response = await axios.patch('http://localhost:3000/api/auth/update-approval', {
+            userId: adminRequest.requesterId,
+            isApproved: true,
+          });
 
-      await axios.post('http://notification-service:3005/api/notify', {
-        recipients: [adminRequest.requesterId],
-        type: 'admin_approval',
-        title: 'Admin Request Approved',
-        message: `Your request for ${adminRequest.role} access has been approved.`,
-      });
+          if (response.status === 200) {
+            await prisma.adminRequest.update({
+              where: { id: adminRequestId },
+              data: { status: 'approved' },
+            });
 
-      logger.info(`Admin request approved successfully for ID: ${adminRequestId}`);
-      return res.status(200).json({ message: 'Admin request approved successfully.' });
+            const payload = {
+              requestId: adminRequestId,
+              requesterId: adminRequest.requesterId,
+              role: adminRequest.role,
+              department:adminRequest.department,
+            };
+
+            
+            await axios.post('http://localhost:5004/api/notifications/send', {
+              type: 'admin_approval_request',
+              channel: 'socket',
+              title: 'Admin Request Approved',
+              recipientId: adminRequestId,
+              email:"admin@gmail.com",
+              meta:payload,
+              message: `Your request for ${adminRequest.role} access has been approved.`,
+            });
+
+            logger.info(`Admin request approved successfully for ID: ${adminRequestId}`);
+            return res.status(200).json({ message: 'Admin request approved successfully.' });
+          }
+        break;
+
+      case 'rejected':
+
+        await prisma.adminRequest.update({
+          where: { id: adminRequestId },
+          data: { status: 'rejected' },
+        });
+            const payload = {
+              requestId: adminRequestId,
+              requesterId: adminRequest.requesterId,
+              role: adminRequest.role,
+              department:adminRequest.department,
+            };
+
+
+        await axios.post('http://localhost:5004/api/notifications/send', {
+          type: 'admin_approval_request',
+          channel: 'socket',
+          title: 'Admin Request Rejected',
+          recipientId: adminRequestId,
+          email:"admin@gmail.com",
+          meta:payload,
+          message: `Your request for ${adminRequest.role} access has been rejected.`,
+      });      
+
+        logger.info(`Admin request rejected  for ID: ${adminRequestId}`);
+        return res.status(200).json({ message: 'Admin request approved successfully.' });
+       
+        
+      default:
+        break;
     }
 
     logger.error(`Failed to approve user in auth-service for request ID: ${adminRequestId}`);
@@ -138,18 +186,32 @@ export const createAdminRequest = async (req, res) => {
     });
 
     logger.info(`Admin request created successfully for requester ID: ${requesterId}`);
-    await axios.post('http://notification-service:3005/api/notify', {
-      recipients: ['superadmin'],
-      type: 'admin_approval_request',
-      title: 'New Admin Request',
-      message: `${requesterName} has requested ${role} access.`,
-      metadata: {
+    const payload = {
         requestId: newRequest.id,
         requesterId,
         role,
         department,
-      },
-    });
+      };
+
+   await axios.post('http://localhost:5004/api/notifications/send', {
+     type: 'admin_approval_request',
+     channel: 'email',
+     title: 'New Admin Request',
+     recipientId: requesterId ,
+     email: "admin@gmail.com",
+     meta:payload,
+     message: `${requesterName} has requested ${role} access.`,
+   });
+ 
+   await axios.post('http://localhost:5004/api/notifications/send', {
+     type: 'admin_approval_request',
+     channel: 'socket',
+     title: 'New Admin Request',
+     recipientId: requesterId,
+     email:"admin@gmail.com",
+     meta:payload,
+     message: `${requesterName} has requested ${role} access.`,
+   });
 
     return res.status(201).json({
       message: 'Admin request submitted and notification sent.',
@@ -157,6 +219,7 @@ export const createAdminRequest = async (req, res) => {
     });
 
   } catch (error) {
+   
     logger.error('Error creating admin request:', error);
     return res.status(500).json({ message: 'Error creating admin request', error: error.message });
   }

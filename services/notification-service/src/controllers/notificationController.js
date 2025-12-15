@@ -3,7 +3,8 @@ const prisma = new PrismaClient();
 
 import { redis } from '../utils/redisClient.js';
 import { sendEmail } from '../services/emailService.js';
-import logger from '../utils/logger.js'; // Import the logger utility
+import logger from '../utils/logger.js'; 
+
 
 // // Get my notifications
 // export const getMyNotifications = async (req, res) => {
@@ -37,15 +38,25 @@ import logger from '../utils/logger.js'; // Import the logger utility
 // };
 
 export const sendNotification = async (req, res) => {
-  const { recipientId, email, channel, message, type, meta } = req.body;
+  const { recipientId, email, channel, message, type, meta, title } = req.body;
+  const defaultTitle = {
+    leave_request: 'Leave Request Submitted',
+    gatepass: 'Gate Pass Update',
+    approval: 'Request Approved',
+    rejection: 'Request Rejected',
+    admin_approval_request: 'Admin Approval Request'
+  };
+
+  let notification;
 
   try {
-    const notification = await prisma.notification.create({
+    notification = await prisma.notification.create({
       data: {
         recipientId,
         channel,
-        message,
         email,
+        message,
+        title: title || defaultTitle[type] || 'Notification',
         type,
         meta: meta || null,
         status: 'pending',
@@ -54,14 +65,12 @@ export const sendNotification = async (req, res) => {
 
     if (channel === 'email') {
       await sendEmail(email, message);
-      logger.info(`✅ Email notification sent to ${email}`); // Log email success
     } else if (channel === 'socket') {
       const socketId = await redis.get(`socket:${recipientId}`);
       if (socketId && global.io) {
-        global.io.to(socketId).emit('notification', { message, type });
-        logger.info(`✅ Socket notification sent to user ${recipientId} with socket ID ${socketId}`); // Log socket success
-      } else {
-        logger.warn(`⚠️ User ${recipientId} is not connected via socket`); // Log warning
+        global.io.to(socketId).emit('notification', {
+          ...notification, // Send full notification object
+        });
       }
     }
 
@@ -70,16 +79,16 @@ export const sendNotification = async (req, res) => {
       data: { status: 'sent' },
     });
 
-    logger.info(`✅ Notification sent successfully for user ${recipientId}`); // Log success
     return res.status(200).json({ message: 'Notification sent successfully' });
 
   } catch (error) {
-    logger.error('❌ Notification sending failed:', error); // Log error
-    await prisma.notification.update({
-      where: { id: notification.id },
-      data: { status: 'failed' },
-    });
-
+    logger.error('❌ Notification sending failed:', error);
+    if (notification?.id) {
+      await prisma.notification.update({
+        where: { id: notification.id },
+        data: { status: 'failed' },
+      });
+    }
     return res.status(500).json({ message: 'Failed to send notification' });
   }
 };
@@ -88,41 +97,49 @@ export const getNotificationsByUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { recipientId: userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [notifications, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: { recipientId: userId },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.notification.count({
+        where: { recipientId: userId, read: false },
+      }),
+    ]);
 
-    logger.info(`✅ Notifications fetched successfully for user ${userId}`); // Log success
-    res.status(200).json({ notifications });
+    res.status(200).json({ notifications, unreadCount });
   } catch (error) {
-    logger.error(`❌ Error fetching notifications for user ${userId}:`, error); // Log error
+    logger.error(`❌ Error fetching notifications for user ${userId}:`, error);
     res.status(500).json({ message: 'Failed to load notifications' });
   }
 };
 
-// controllers/getNotifications.js
 export const getNotifications = async (req, res) => {
-  const { userId, type, skip = 0, limit = 10 } = req.query;
-
+  const { type, skip = 0, limit = 10 } = req.query;
+  const userId= req.user.id
   try {
     const filters = { recipientId: userId };
     if (type) filters.type = type;
 
-    const notifications = await prisma.notification.findMany({
-      where: filters,
-      orderBy: { createdAt: 'desc' },
-      skip: parseInt(skip),
-      take: parseInt(limit),
-    });
+    const [notifications, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: filters,
+        orderBy: { createdAt: 'desc' },
+        skip: parseInt(skip),
+        take: parseInt(limit),
+      }),
+      prisma.notification.count({
+        where: { recipientId: userId, read: false },
+      }),
+    ]);
 
-    logger.info(`✅ Notifications fetched successfully for user ${userId}`); // Log success
-    return res.status(200).json(notifications);
+    return res.status(200).json({ notifications, unreadCount });
   } catch (err) {
-    logger.error(`❌ Failed to fetch notifications for user ${userId}:`, err); // Log error
+    logger.error(`❌ Failed to fetch notifications for user ${userId}:`, err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 export const markAsRead = async (req, res) => {
   const { id } = req.params;
@@ -137,5 +154,22 @@ export const markAsRead = async (req, res) => {
   } catch (err) {
     logger.error(`❌ Mark as read failed for ID: ${id}`, err); // Log error
     res.status(500).json({ message: 'Failed to mark as read' });
+  }
+};
+
+ 
+export const markAllAsRead = async (req, res) => {
+  const { userId } = req.body;
+  try {
+    await prisma.notification.updateMany({
+      where: { recipientId: userId, read: false },
+      data: { read: true },
+    });
+
+    logger.info(`✅ All notifications marked as read for user ${userId}`);
+    return res.status(200).json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    logger.error(`❌ Failed to mark all notifications as read for user ${userId}`, err);
+    res.status(500).json({ message: 'Failed to mark all as read' });
   }
 };

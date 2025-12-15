@@ -6,7 +6,7 @@ import { sendLeaveRequestNotification, sendLeaveApprovalNotification, sendReject
 
 export const createLeaveRequest = async (req, res) => {
   try {
-    const { reason, fromDate, toDate, flowType } = req.body;
+    const { reason, fromDate, toDate, flowType, emergencyContact, destination } = req.body;
     const { id: userId, role, department, email, name } = req.user;
 
     if (role !== 'student') {
@@ -21,6 +21,8 @@ export const createLeaveRequest = async (req, res) => {
         reason,
         fromDate: new Date(fromDate),
         toDate: new Date(toDate),
+        emergencyContact,
+        destination,
         flowType: flowType || 'standard',
         status: 'pending',
         department,
@@ -138,27 +140,56 @@ export const approveLeaveRequest = async (req, res) => {
     }
 
     if (nextStage !== 'done') {
-      const nextRole = nextStage === 'academic' ? 'academic_admin' :
-                       nextStage === 'hostel' ? 'hostel_admin' : null;
-
-      const queryParams = nextRole === 'academic_admin'
-        ? `role=${nextRole}`
-        : `role=${nextRole}&department=${department}`;
-
-      const { data: nextAdmins } = await axios.get(`http://localhost:3000/api/auth/admins?${queryParams}`);
-
-      for (const admin of nextAdmins) {
-        await sendLeaveRequestNotification(admin, {
-          userId: leaveRequest.user.id,
-          email: leaveRequest.user.email,
-          name: leaveRequest.user.name,
-          role: leaveRequest.user.role,
-          department,
-          leaveRequest,
-        });
+      // Determine the next role based on the next stage
+      let nextRole;
+      if (nextStage === 'academic') {
+        nextRole = 'academic_admin';
+      } else if (nextStage === 'hostel') {
+        nextRole = 'hostel_admin';
+      } else {
+        logger.warn(`Invalid next stage: ${nextStage}`);
+        return res.status(400).json({ message: 'Invalid next stage' });
       }
 
-      logger.info(`Notifications sent to next stage admins for leave ID: ${leaveId}`);
+      // Construct query parameters
+      let queryParams = `role=${nextRole}`;
+      if (nextRole === 'academic_admin') {
+        if (!department) {
+          logger.warn('Department is required for academic admin notifications');
+          return res.status(400).json({ message: 'Department is required for academic admin notifications' });
+        }
+        queryParams += `&department=${department}`;
+      }
+
+      try {
+        // Fetch the next admins
+        const response = await axios.get(`http://localhost:3000/api/auth/admins?${queryParams}`);
+        const nextAdmins = response.data;
+
+        if (!nextAdmins || nextAdmins.length === 0) {
+          logger.warn(`No admins found for query: ${queryParams}`);
+          return res.status(404).json({ message: 'No admins found for the next stage' });
+        }
+
+        // Send notifications concurrently
+        await Promise.all(
+          nextAdmins.map((admin) =>
+            sendLeaveRequestNotification(admin, {
+              userId: leaveRequest.userId,
+              email: leaveRequest.email,
+              name: leaveRequest.name,
+              role: leaveRequest.role,
+              department,
+              leaveRequest,
+            })
+          )
+        );
+
+        logger.info(`Notifications sent to ${nextAdmins.length} admins for leave request ID: ${leaveRequest.id}`);
+      } catch (error) {
+        logger.error(`Error fetching or notifying admins: ${error.message}`);
+        return res.status(500).json({ message: 'Error notifying next stage admins' });
+      }
     }
 
     return res.status(200).json({ message: `Leave request moved to ${nextStage}` });
@@ -206,7 +237,7 @@ export const rejectLeaveRequest = async (req, res) => {
       return res.status(403).json({ error: 'You are not authorized to reject this leave request at this stage' });
     }
 
-    const updatedLeaveRequest = await prisma.leave.update({
+      const updatedLeaveRequest = await prisma.leave.update({
       where: { id: leaveRequestId },
       data: {
         status: 'rejected',
@@ -229,6 +260,48 @@ export const rejectLeaveRequest = async (req, res) => {
   }
 };
 
+
+export const cancelLeaveRequest= async(req,res) =>{
+  const {leaveId} = req.params;
+  try {
+    const leave = await prisma.leave.findUnique({
+        where:{id:leaveId}
+     });
+
+    if(!leave){
+      logger.warn(`Leave not found for ID: ${leaveId}`);
+      return res.status(404).json({ message: 'Leave not found' });
+    }
+
+    const {currentStatus} = leave.status
+    
+    if(currentStatus === "approved" || currentStatus === 'rejected'){
+      logger.warn(`Leave not Cancel for ID: ${leaveId}`);
+      return res.status(404).json({ message: 'Leave is already approved or rejected ' });
+    }
+    if(currentStatus === "cancelled"){
+      logger.warn(`Leave already Cancel for ID: ${leaveId}`);
+      return res.status(404).json({ message: 'Leave is already cancelled ' });
+    }
+    
+        await prisma.leave.update({
+          where:{id:leaveId},
+          data:{
+            status: "cancelled",
+            updatedAt: new Date(),
+          }
+
+        })
+        
+    logger.info(`Leave ID: ${leaveId} canceled by student ID: ${leave.userId}`);
+    res.status(200).json({ success: 'Leave cancelled successfully' });
+
+  } catch (error) {
+    logger.error('Error fetching leave:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
 export const getLeaveById = async (req, res) => {
   const { leaveId } = req.params;
 
@@ -250,16 +323,65 @@ export const getLeaveById = async (req, res) => {
   }
 };
 
+export const getAllMyLeaves = async (req, res) => {
+  const { userId } = req.user;
+
+  try {
+    const leaves = await prisma.leave.findMany({
+      where: { userId },
+    });
+
+    if (!leaves || leaves.length === 0) {
+      logger.warn(`Leave not found for ID: ${userId}`);
+      return res.status(404).json({ message: 'Leave not found' });
+    }
+
+    const mappedLeaves = leaves.map((leave) => ({
+      id: leave.id,
+      reason: leave.reason,
+      startDate: leave.fromDate,
+      endDate: leave.toDate,
+      emergencyContact: leave.emergencyContact,
+      destination: leave.destination,
+      status: leave.status,
+      department: leave.department,
+      currentStage: leave.currentStage,
+      type: leave.flowType,
+      createdAt: leave.createdAt,
+      updatedAt: leave.updatedAt,
+      userId: leave.userId,
+    }));
+
+    logger.info(`Leave fetched successfully for ID: ${userId}`);
+    return res.status(200).json({ leaveRequests: mappedLeaves });
+  } catch (error) {
+    logger.error('Error fetching leave:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
 export const getAllLeaveRequests = async (req, res) => {
   try {
-    const { role, department } = req.user;
+    const { role, department,userId } = req.user;
+    const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
+
+    // Validate page and limit
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+      return res.status(400).json({ message: 'Invalid pagination parameters' });
+    }
 
     let leaves;
 
+    // Admin-specific logic (department admins fetch by department, others fetch all)
     if (role === 'department_admin') {
       leaves = await prisma.leave.findMany({
         where: { department },
         orderBy: { createdAt: 'desc' },
+        skip: (pageNumber - 1) * limitNumber, // Pagination skip
+        take: limitNumber, // Pagination limit
       });
     } else if (['super_admin', 'academic_admin', 'hostel_admin'].includes(role)) {
       leaves = await prisma.leave.findMany({
@@ -267,16 +389,46 @@ export const getAllLeaveRequests = async (req, res) => {
           { department: 'asc' },
           { createdAt: 'desc' },
         ],
+        skip: (pageNumber - 1) * limitNumber, // Pagination skip
+        take: limitNumber, // Pagination limit
       });
-    } else {
+      
+    } else if (role==="student"){
+       leaves=await prisma.leave.findMany({
+          where:{
+            userId
+          },
+          orderBy:[
+            {createdAt:'desc'}
+          ]
+       })
+      
+    }else {
       logger.warn(`Access denied for user ID: ${req.user.id}, role: ${role}`);
       return res.status(403).json({ message: 'Access denied' });
     }
 
+    const mappedLeaves = leaves.map((leave) => ({
+      id: leave.id,
+      reason: leave.reason,
+      startDate: leave.fromDate,
+      endDate: leave.toDate,
+      emergencyContact: leave.emergencyContact,
+      destination: leave.destination,
+      status: leave.status,
+      department: leave.department,
+      currentStage: leave.currentStage,
+      type: leave.flowType,
+      createdAt: leave.createdAt,
+      updatedAt: leave.updatedAt,
+      userId: leave.userId,
+    }));
+
     logger.info(`Leave requests fetched successfully for role: ${role}`);
-    return res.status(200).json(leaves);
+    return res.status(200).json({ leaveRequests: mappedLeaves });
   } catch (error) {
     logger.error('Error fetching leave requests:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+

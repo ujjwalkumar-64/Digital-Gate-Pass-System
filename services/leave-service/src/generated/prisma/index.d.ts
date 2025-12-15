@@ -27,7 +27,8 @@ export namespace $Enums {
   pending: 'pending',
   forwarded: 'forwarded',
   approved: 'approved',
-  rejected: 'rejected'
+  rejected: 'rejected',
+  cancelled: 'cancelled'
 };
 
 export type LeaveStatus = (typeof LeaveStatus)[keyof typeof LeaveStatus]
@@ -915,6 +916,8 @@ export namespace Prisma {
     reason: string | null
     fromDate: Date | null
     toDate: Date | null
+    emergencyContact: string | null
+    destination: string | null
     status: $Enums.LeaveStatus | null
     userId: string | null
     department: string | null
@@ -929,6 +932,8 @@ export namespace Prisma {
     reason: string | null
     fromDate: Date | null
     toDate: Date | null
+    emergencyContact: string | null
+    destination: string | null
     status: $Enums.LeaveStatus | null
     userId: string | null
     department: string | null
@@ -943,6 +948,8 @@ export namespace Prisma {
     reason: number
     fromDate: number
     toDate: number
+    emergencyContact: number
+    destination: number
     status: number
     userId: number
     department: number
@@ -959,6 +966,8 @@ export namespace Prisma {
     reason?: true
     fromDate?: true
     toDate?: true
+    emergencyContact?: true
+    destination?: true
     status?: true
     userId?: true
     department?: true
@@ -973,6 +982,8 @@ export namespace Prisma {
     reason?: true
     fromDate?: true
     toDate?: true
+    emergencyContact?: true
+    destination?: true
     status?: true
     userId?: true
     department?: true
@@ -987,6 +998,8 @@ export namespace Prisma {
     reason?: true
     fromDate?: true
     toDate?: true
+    emergencyContact?: true
+    destination?: true
     status?: true
     userId?: true
     department?: true
@@ -1074,6 +1087,8 @@ export namespace Prisma {
     reason: string
     fromDate: Date
     toDate: Date
+    emergencyContact: string
+    destination: string
     status: $Enums.LeaveStatus
     userId: string
     department: string
@@ -1105,6 +1120,8 @@ export namespace Prisma {
     reason?: boolean
     fromDate?: boolean
     toDate?: boolean
+    emergencyContact?: boolean
+    destination?: boolean
     status?: boolean
     userId?: boolean
     department?: boolean
@@ -1119,6 +1136,8 @@ export namespace Prisma {
     reason?: boolean
     fromDate?: boolean
     toDate?: boolean
+    emergencyContact?: boolean
+    destination?: boolean
     status?: boolean
     userId?: boolean
     department?: boolean
@@ -1133,6 +1152,8 @@ export namespace Prisma {
     reason?: boolean
     fromDate?: boolean
     toDate?: boolean
+    emergencyContact?: boolean
+    destination?: boolean
     status?: boolean
     userId?: boolean
     department?: boolean
@@ -1147,6 +1168,8 @@ export namespace Prisma {
     reason?: boolean
     fromDate?: boolean
     toDate?: boolean
+    emergencyContact?: boolean
+    destination?: boolean
     status?: boolean
     userId?: boolean
     department?: boolean
@@ -1156,7 +1179,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type LeaveOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "reason" | "fromDate" | "toDate" | "status" | "userId" | "department" | "currentStage" | "flowType" | "createdAt" | "updatedAt", ExtArgs["result"]["leave"]>
+  export type LeaveOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "reason" | "fromDate" | "toDate" | "emergencyContact" | "destination" | "status" | "userId" | "department" | "currentStage" | "flowType" | "createdAt" | "updatedAt", ExtArgs["result"]["leave"]>
 
   export type $LeavePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Leave"
@@ -1166,6 +1189,8 @@ export namespace Prisma {
       reason: string
       fromDate: Date
       toDate: Date
+      emergencyContact: string
+      destination: string
       status: $Enums.LeaveStatus
       userId: string
       department: string
@@ -1600,6 +1625,8 @@ export namespace Prisma {
     readonly reason: FieldRef<"Leave", 'String'>
     readonly fromDate: FieldRef<"Leave", 'DateTime'>
     readonly toDate: FieldRef<"Leave", 'DateTime'>
+    readonly emergencyContact: FieldRef<"Leave", 'String'>
+    readonly destination: FieldRef<"Leave", 'String'>
     readonly status: FieldRef<"Leave", 'LeaveStatus'>
     readonly userId: FieldRef<"Leave", 'String'>
     readonly department: FieldRef<"Leave", 'String'>
@@ -1992,6 +2019,8 @@ export namespace Prisma {
     reason: 'reason',
     fromDate: 'fromDate',
     toDate: 'toDate',
+    emergencyContact: 'emergencyContact',
+    destination: 'destination',
     status: 'status',
     userId: 'userId',
     department: 'department',
@@ -2106,6 +2135,8 @@ export namespace Prisma {
     reason?: StringFilter<"Leave"> | string
     fromDate?: DateTimeFilter<"Leave"> | Date | string
     toDate?: DateTimeFilter<"Leave"> | Date | string
+    emergencyContact?: StringFilter<"Leave"> | string
+    destination?: StringFilter<"Leave"> | string
     status?: EnumLeaveStatusFilter<"Leave"> | $Enums.LeaveStatus
     userId?: StringFilter<"Leave"> | string
     department?: StringFilter<"Leave"> | string
@@ -2120,6 +2151,8 @@ export namespace Prisma {
     reason?: SortOrder
     fromDate?: SortOrder
     toDate?: SortOrder
+    emergencyContact?: SortOrder
+    destination?: SortOrder
     status?: SortOrder
     userId?: SortOrder
     department?: SortOrder
@@ -2137,6 +2170,8 @@ export namespace Prisma {
     reason?: StringFilter<"Leave"> | string
     fromDate?: DateTimeFilter<"Leave"> | Date | string
     toDate?: DateTimeFilter<"Leave"> | Date | string
+    emergencyContact?: StringFilter<"Leave"> | string
+    destination?: StringFilter<"Leave"> | string
     status?: EnumLeaveStatusFilter<"Leave"> | $Enums.LeaveStatus
     userId?: StringFilter<"Leave"> | string
     department?: StringFilter<"Leave"> | string
@@ -2151,6 +2186,8 @@ export namespace Prisma {
     reason?: SortOrder
     fromDate?: SortOrder
     toDate?: SortOrder
+    emergencyContact?: SortOrder
+    destination?: SortOrder
     status?: SortOrder
     userId?: SortOrder
     department?: SortOrder
@@ -2171,6 +2208,8 @@ export namespace Prisma {
     reason?: StringWithAggregatesFilter<"Leave"> | string
     fromDate?: DateTimeWithAggregatesFilter<"Leave"> | Date | string
     toDate?: DateTimeWithAggregatesFilter<"Leave"> | Date | string
+    emergencyContact?: StringWithAggregatesFilter<"Leave"> | string
+    destination?: StringWithAggregatesFilter<"Leave"> | string
     status?: EnumLeaveStatusWithAggregatesFilter<"Leave"> | $Enums.LeaveStatus
     userId?: StringWithAggregatesFilter<"Leave"> | string
     department?: StringWithAggregatesFilter<"Leave"> | string
@@ -2185,6 +2224,8 @@ export namespace Prisma {
     reason: string
     fromDate: Date | string
     toDate: Date | string
+    emergencyContact: string
+    destination: string
     status?: $Enums.LeaveStatus
     userId: string
     department: string
@@ -2199,6 +2240,8 @@ export namespace Prisma {
     reason: string
     fromDate: Date | string
     toDate: Date | string
+    emergencyContact: string
+    destination: string
     status?: $Enums.LeaveStatus
     userId: string
     department: string
@@ -2213,6 +2256,8 @@ export namespace Prisma {
     reason?: StringFieldUpdateOperationsInput | string
     fromDate?: DateTimeFieldUpdateOperationsInput | Date | string
     toDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    emergencyContact?: StringFieldUpdateOperationsInput | string
+    destination?: StringFieldUpdateOperationsInput | string
     status?: EnumLeaveStatusFieldUpdateOperationsInput | $Enums.LeaveStatus
     userId?: StringFieldUpdateOperationsInput | string
     department?: StringFieldUpdateOperationsInput | string
@@ -2227,6 +2272,8 @@ export namespace Prisma {
     reason?: StringFieldUpdateOperationsInput | string
     fromDate?: DateTimeFieldUpdateOperationsInput | Date | string
     toDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    emergencyContact?: StringFieldUpdateOperationsInput | string
+    destination?: StringFieldUpdateOperationsInput | string
     status?: EnumLeaveStatusFieldUpdateOperationsInput | $Enums.LeaveStatus
     userId?: StringFieldUpdateOperationsInput | string
     department?: StringFieldUpdateOperationsInput | string
@@ -2241,6 +2288,8 @@ export namespace Prisma {
     reason: string
     fromDate: Date | string
     toDate: Date | string
+    emergencyContact: string
+    destination: string
     status?: $Enums.LeaveStatus
     userId: string
     department: string
@@ -2255,6 +2304,8 @@ export namespace Prisma {
     reason?: StringFieldUpdateOperationsInput | string
     fromDate?: DateTimeFieldUpdateOperationsInput | Date | string
     toDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    emergencyContact?: StringFieldUpdateOperationsInput | string
+    destination?: StringFieldUpdateOperationsInput | string
     status?: EnumLeaveStatusFieldUpdateOperationsInput | $Enums.LeaveStatus
     userId?: StringFieldUpdateOperationsInput | string
     department?: StringFieldUpdateOperationsInput | string
@@ -2269,6 +2320,8 @@ export namespace Prisma {
     reason?: StringFieldUpdateOperationsInput | string
     fromDate?: DateTimeFieldUpdateOperationsInput | Date | string
     toDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    emergencyContact?: StringFieldUpdateOperationsInput | string
+    destination?: StringFieldUpdateOperationsInput | string
     status?: EnumLeaveStatusFieldUpdateOperationsInput | $Enums.LeaveStatus
     userId?: StringFieldUpdateOperationsInput | string
     department?: StringFieldUpdateOperationsInput | string
@@ -2323,6 +2376,8 @@ export namespace Prisma {
     reason?: SortOrder
     fromDate?: SortOrder
     toDate?: SortOrder
+    emergencyContact?: SortOrder
+    destination?: SortOrder
     status?: SortOrder
     userId?: SortOrder
     department?: SortOrder
@@ -2337,6 +2392,8 @@ export namespace Prisma {
     reason?: SortOrder
     fromDate?: SortOrder
     toDate?: SortOrder
+    emergencyContact?: SortOrder
+    destination?: SortOrder
     status?: SortOrder
     userId?: SortOrder
     department?: SortOrder
@@ -2351,6 +2408,8 @@ export namespace Prisma {
     reason?: SortOrder
     fromDate?: SortOrder
     toDate?: SortOrder
+    emergencyContact?: SortOrder
+    destination?: SortOrder
     status?: SortOrder
     userId?: SortOrder
     department?: SortOrder

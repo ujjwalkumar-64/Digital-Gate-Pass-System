@@ -6,7 +6,7 @@ import { sendGatePassIssuedNotification, sendGatePassUsedNotification, sendGateP
 
 export const issueGatePass = async (req, res) => {
   const hostelAdminId = req.user.id;
-  const { leaveId } = req.params;
+  const { leaveId } = req.body;
 
   logger.info(`Processing gate pass issuance for leave ID: ${leaveId} by hostel admin ID: ${hostelAdminId}`);
 
@@ -84,12 +84,35 @@ export const myGatePasses = async (req, res) => {
     });
 
     logger.info(`Fetched gate passes for user ID: ${req.user.id}`);
-    res.json(passes);
+
+    res.json({
+      gatepasses: passes,
+      total: passes.length,
+    });
   } catch (err) {
     logger.error(`Failed to fetch gate passes for user ID: ${req.user.id}`, err);
     res.status(500).json({ message: 'Fetch failed', error: err.message });
   }
 };
+export const gatePasses = async (req, res) => {
+  try {
+    const passes = await prisma.gatePass.findMany({
+       
+      orderBy: { createdAt: 'desc' },
+    });
+
+    logger.info(`Fetched gate passes for user: ${req.user.role}`);
+
+    res.json({
+      gatepasses: passes,
+      total: passes.length,
+    });
+  } catch (err) {
+    logger.error(`Failed to fetch gate passes for : ${req.user.role}`, err);
+    res.status(500).json({ message: 'Fetch failed', error: err.message });
+  }
+};
+
 
 export const verifyGatePass = async (req, res) => {
   const { gatePassId } = req.params;
@@ -167,3 +190,40 @@ export const verifyGatePass = async (req, res) => {
 
 
 
+export const recordExit = async (req, res) => {
+  const gatePassId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const updated = await prisma.gatePass.update({
+      where: { id: gatePassId },
+      data: {
+        status: 'used',
+        gateOutAt: new Date(),
+        verifiedOutById: userId,
+      },
+    });
+    res.json({ message: 'Exit recorded successfully', gatePass: updated });
+  } catch (err) {
+    res.status(500).json({ message: 'Error recording exit', error: err.message });
+  }
+};
+
+export const recordEntry = async (req, res) => {
+  const gatePassId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const updated = await prisma.gatePass.update({
+      where: { id: gatePassId },
+      data: {
+        status: 'expired',
+        gateInAt: new Date(),
+        verifiedInById: userId,
+      },
+    });
+    res.json({ message: 'Entry recorded successfully', gatePass: updated });
+  } catch (err) {
+    res.status(500).json({ message: 'Error recording entry', error: err.message });
+  }
+};

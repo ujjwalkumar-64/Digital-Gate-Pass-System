@@ -192,7 +192,7 @@ const config = {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "postgresql://postgres:Rgipt@3064@localhost:5432/auth_db"
+        "value": "postgresql://auth_user:auth_pass@localhost:5433/auth_db"
       }
     }
   },

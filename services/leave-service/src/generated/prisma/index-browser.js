@@ -122,6 +122,8 @@ exports.Prisma.LeaveScalarFieldEnum = {
   reason: 'reason',
   fromDate: 'fromDate',
   toDate: 'toDate',
+  emergencyContact: 'emergencyContact',
+  destination: 'destination',
   status: 'status',
   userId: 'userId',
   department: 'department',
@@ -144,7 +146,8 @@ exports.LeaveStatus = exports.$Enums.LeaveStatus = {
   pending: 'pending',
   forwarded: 'forwarded',
   approved: 'approved',
-  rejected: 'rejected'
+  rejected: 'rejected',
+  cancelled: 'cancelled'
 };
 
 exports.FlowType = exports.$Enums.FlowType = {
