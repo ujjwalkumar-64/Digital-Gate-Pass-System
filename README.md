@@ -1,43 +1,201 @@
-# Digital Gate Pass System - RGIPT (Microservices Architecture)
+# Digital Gate Pass System - RGIPT (Microservices-Based Campus Automation Platform)
 
-A scalable, modular gate pass automation system for RGIPT that transitions from manual, paper-based leave approval to a fully digital workflow using microservices. Students apply for leave digitally, with approvals from various authorities and gate pass issuance via QR codes.
+   A digital gate pass and leave management system for RGIPT that replaces the traditional paper-based approval process with a secure, scalable, and fully automated workflow.
+   The system enables students to apply for leave online, routes requests through the appropriate authorities, and issues QR code–based gate passes that are validated in real time at campus entry and exit points.
 
+    
 ---
+
+## ✨ Key Features
+
+- Digital leave application & approval workflow
+
+- Role-based access control (RBAC) using JWT
+
+- QR code–based gate pass generation
+
+- Entry/exit tracking using QR scan lifecycle
+
+- Real-time notifications using Redis + WebSockets
+
+- Persistent notification logs
+
+- Microservices architecture with Dockerized setup
 
 ## 🚀 Architecture Overview
 
-This system follows a **Microservices Architecture** for scalability, fault isolation, and easier deployment.
+This system follows a **Microservices Architecture** to ensure scalability, fault isolation, and independent deployment.
+
+ ### High-Level Components
+
+- Frontend: React (Vite) + Tailwind CSS
+
+- API Gateway: Centralized routing and authentication middleware
+
+- Backend Services: Node.js + Express microservices
+
+- Database: PostgreSQL (separate database per service)
+
+- Realtime Layer: Redis + WebSockets
+
+- Deployment: Docker & Docker Compose
 
 ### Microservices:
 
-- **Auth Service**
+- **🔐 Auth Service**
 
-  - Handles user registration, login, and role-based authentication (student, department, academic, hostel, security).
+  - Handles authentication and authorization.
 
-- **Leave Service**
+    *Responsibilities*
+      
+      - User registration & login
+      
+      - JWT-based authentication
+      
+      - Role-based access control
+ 
+    *Endpoints*
+  
+     - `POST /auth/register`
+     - `POST /auth/login`
+     - `GET  /auth/profile`
+   
+    *DB Table*
+    - Users (id, name, email, hashedPassword, role, departmentId, hostelId)
+    - Roles enum (STUDENT, DEPARTMENT, ACADEMIC, HOSTEL, SECURITY, ADMIN)
 
-  - Students apply for leave, view status. Departments/authorities can approve/reject.
 
-- **GatePass Service**
+- **📄 Leave Service**
 
-  - Generates QR code-based gate passes, logs entry/exit.
+  - Manages leave requests and approval flows.
+ 
+    *Responsibilities*
 
-- **Notification Service**
+      - Leave application submission
+      
+      - Multi-stage approval workflow
+      
+      - Tracks approval status and current stage
 
-  - Sends emails/SMS updates at each stage of the process.
+    *Endpoints*
+  
+      - `POST /leave/apply`
+      - `GET  /leave/status/:id`
+      - `PUT  /leave/:id/approve`
+      - `PUT  /leave/:id/reject`
 
-- **Admin/Analytics Service**
+    *Core Tables*
+  
+      - LeaveApplications (id, studentId, reason, fromDate, toDate, status, currentStage, approvalLog)
+      
+      - ApprovalLogs
 
-  - Manages dashboards, reports, and system health logs.
+- **🪪 GatePass Service**
 
-- **API Gateway**
-  - Unified entry point for all client requests with route handling and auth middleware.
+  - Handles gate pass generation and validation.
 
-### Communication:
+    *Responsibilities*
 
-- **REST/gRPC** between services
-- **Kafka/NATS** for async events (notifications, logs)
-- **Redis** (optional): Caching or rate-limiting
+      - Generate QR code after final approval
+      
+      - Validate QR scans at gate
+      
+      - Prevent reuse of expired gate passes
+      
+      - Gate Pass Lifecycle
+      
+      - First scan → exit time recorded
+      
+      - Second scan → entry time recorded and pass expired
+
+    *Endpoints*
+
+      - `GET  /gatepass/:leaveId`
+      - `POST /gatepass/scan`
+   
+      *DB Table*
+      - GatePass (id, leaveId, qrCodeUrl, status, issuedById, entryTime, exitTime)
+
+- **📢 Notification Service**
+
+  - Provides real-time and persistent notifications.
+
+    *Responsibilities*
+
+      - Push real-time notifications via WebSockets
+      
+      - Persist notifications in database
+      
+      - Use Redis for socket event handling
+
+    *Events*
+
+      - Leave submitted
+      
+      - Leave approved / rejected
+      
+      - Gate pass issued
+
+      - Admin approval requests
+        
+- **🧠 Admin Service**
+
+  - Handles administrative operations and analytics.
+
+    *Responsibilities*
+
+      - Admin approval handling
+      
+      - System dashboards & analytics
+      
+      - User and notification logs
+
+    *Endpoints*
+
+     - `GET /admin/users`
+     - `GET /admin/analytics`
+
+ 
+
+### 🔄 Inter-Service Communication:
+
+- **REST APIs** for synchronous service-to-service communication
+
+- **Redis + WebSockets** for real-time notifications
+
+- **No message broker (Kafka/RabbitMQ)** in current implementation
+
+---
+## 🔁 Inter-Service REST Communication Examples
+
+1. Admin Service:
+
+    Calls:
+  
+      - leave-service/api/leaves/stats
+      
+      - gatepass-service/api/gatepasses/stats
+      
+      - notification-service/api/notifications/stats
+
+2. Leave Service:
+
+    Can notify:
+  
+      - notification-service on approval/rejection
+
+3. Gatepass Service:
+
+    Can notify:
+  
+      - notification-service when gatepass is issued
+
+Frontend:
+
+  - Auth API → auth-service
+  
+  - Leave Form API → leave-service
+
 
 ---
 
@@ -48,24 +206,7 @@ gate-pass-system/
 ├── docker-compose.yml
 ├── .env
 ├── README.md
-├── gateway/                         # API Gateway (Express/NGINX)
-│   └── index.ts
-├── shared/                          # Shared types/interfaces between services
-│   └── types/
-│       └── user.ts
 ├── client/                          # React frontend (Vite)
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
-│   │   ├── features/
-│   │   ├── pages/
-│   │   ├── services/               # API hooks (axios/fetch)
-│   │   ├── store/                  # Redux store
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── tailwind.config.js
-│   └── package.json
 ├── services/
 │   ├── auth-service/
 │   │   ├── prisma/
@@ -90,9 +231,7 @@ gate-pass-system/
 │   ├── gatepass-service/
 │   ├── notification-service/
 │   ├── admin-service/
-│   └── ...
-└── scripts/
-    └── init.sh                      # For DB setup, Prisma migration, etc.
+
 
 ```
 
@@ -106,7 +245,7 @@ gate-pass-system/
 - PostgreSQL (per service DB)
 - Prisma ORM
 - Redis (for caching and queues)
-- Kafka (event-driven architecture)
+- JWT Authentication
 
 ### Frontend
 
@@ -117,190 +256,41 @@ gate-pass-system/
 ### DevOps
 
 - Docker + Docker Compose
-- NGINX (or Express Gateway)
-- PM2 / Systemd for process management
 
 ---
 
-## 🔐 Auth Service
-
-### Endpoints
-
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/profile`
-
-### DB Tables
-
-- Users (id, name, email, hashedPassword, role, departmentId, hostelId)
-- Roles enum (STUDENT, DEPARTMENT, ACADEMIC, HOSTEL, SECURITY, ADMIN)
-
----
-
-## 📄 Leave Service
-
-### Endpoints
-
-- `POST /leave/apply`
-- `GET /leave/status/:id`
-- `PUT /leave/:id/approve`
-- `PUT /leave/:id/reject`
-
-### DB Tables
-
-- LeaveApplications (id, studentId, reason, fromDate, toDate, status, currentStage, approvalLog)
-
----
-
-## 🪪 GatePass Service
-
-### Endpoints
-
-- `GET /gatepass/:leaveId`
-- `POST /gatepass/scan`
-
-### DB Tables
-
-- GatePass (id, leaveId, qrCodeUrl, status, issuedById, entryTime, exitTime)
-
----
-
-## 📢 Notification Service
-
-### Channels
-
-- Email (Nodemailer)
-- SMS (Optional: Twilio)
-
-### Events Listened
-
-- leave.approved
-- leave.rejected
-- gatepass.issued
-
----
-
-## 🧠 Admin Service
-
-### Endpoints
-
-- `GET /admin/users`
-- `GET /admin/analytics`
-
-### Features
-
-- Filter leave trends
-- Approval rates
-- QR usage logs
-
----
 
 ## 🛠️ Setup Instructions
 
-1. Clone Repo
-2. Install Docker & Docker Compose
-3. Run `docker-compose up --build`
-4. Access services at their respective ports or via gateway
+  1. Clone Repo
+  2. Install Docker & Docker Compose
+  3. Run `docker-compose up --build`
+  4. Access services at their respective ports
 
 ---
 
-## 🧩 RGIPT Digital Gate Pass System – Microservices Architecture Diagram
+## 🧠 Design Decisions ##
 
-                        +----------------+
-                        |   Frontend UI  |
-                        |  (React.js)    |
-                        +-------+--------+
-                                |
-                                ▼
-                      +---------+---------+
-                      |  API Gateway /    |
-                      |  Nginx (optional) |
-                      +---------+---------+
-                                |
-        ┌──────────────────────┼──────────────────────┐
-        ▼                      ▼                      ▼
+  - Microservices → independent scaling and clean separation of concerns
+  
+  - JWT + RBAC → secure and controlled access
+  
+   - Redis + WebSockets → real-time UX without heavy infrastructure
+  
+  - QR-based validation → prevents gate pass misuse and duplication
+    
 
-+---------------+ +----------------+ +------------------+
-| Auth Service | | User Service | | Admin Service |
-| (Login/JWT) | | (Users/Roles) | | (Dashboard, |
-| | | | | Stats, Roles) |
-+-------+-------+ +-------+--------+ +--------+---------+
-| | |
-▼ ▼ ▼
-+-------+--------+ +-------+--------+ +--------+--------+
-| Leave Service | | Gatepass Svc |◄────►| Notification Svc |
-| (Form, Flow) | | (After Approval)| | (Email/SMS logs)|
-+-------+--------+ +--------+------+ +------------------+
-|
-▼
-+----------------+
-| Department / |
-| Academic Flow |
-| (Internal DB) |
-+----------------+
+## 📌 What This Project Demonstrates ##
 
-                          ▼
-                +------------------+
-                | Security Service |
-                |  (Gate Pass Scan)|
-                +------------------+
-
----
-
-## 🔁 Inter-Service REST Communication Examples
-
-1. Admin Service:
-
-Calls:
-
-leave-service/api/leaves/stats
-
-gatepass-service/api/gatepasses/stats
-
-notification-service/api/notifications/stats
-
-2. Leave Service:
-
-Can notify:
-
-notification-service on approval/rejection
-
-3. Gatepass Service:
-
-Can notify:
-
-notification-service when gatepass is issued
-
-Frontend:
-
-Auth API → auth-service
-
-Leave Form API → leave-service
-
-## Dashboard → admin-service (which in turn calls others)
-
-## ✅ Project Roadmap
-
-### Week 1:
-
-- Setup GitHub repo, Docker config
-- Build Auth Service + DB schema
-
-### Week 2:
-
-- Build Leave Service + Approval Flow
-
-### Week 3:
-
-- Build GatePass Service + QR scan logic
-- Notification Service with Kafka
-
-### Week 4:
-
-- Deploy on VPS / Railway
-- Testing + CI/CD (GitHub Actions)
-
----
+  - End-to-end system design & implementation
+  
+  - Strong backend engineering fundamentals
+  
+  - Practical microservices architecture
+  
+  - Real-time system handling using Redis & sockets
+  
+  - Production-style Dockerized deployment
 
 ## 🔮 Future Scope
 
